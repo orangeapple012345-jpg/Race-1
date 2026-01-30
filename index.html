@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react"; import { motion } from "framer-motion";
 
-const TRACK_LENGTH = 1000; // arbitrary units
+const TRACK_LENGTH = 1000; // track distance units const TICK_MS = 100; // update every 100ms (~10 frames/sec) const RACE_TIME_SECONDS = 120; // target race duration ~2 minutes const BASE_INCREMENT = TRACK_LENGTH / (RACE_TIME_SECONDS * (1000 / TICK_MS));
 
-const carPool = [ { name: "Falcon", topSpeed: 220, zeroToSixty: 3.5, bhp: 450, handling: 80, image: null }, { name: "Viper", topSpeed: 240, zeroToSixty: 3.1, bhp: 500, handling: 75, image: null }, { name: "Shadow", topSpeed: 210, zeroToSixty: 3.8, bhp: 420, handling: 90, image: null }, { name: "Blaze", topSpeed: 230, zeroToSixty: 3.3, bhp: 480, handling: 85, image: null } ];
+const carPool = [ { name: "Falcon", topSpeed: 220, zeroToSixty: 3.5, bhp: 450, handling: 80, image: "/cars/falcon.jpg" }, { name: "Viper", topSpeed: 240, zeroToSixty: 3.1, bhp: 500, handling: 75, image: "/cars/viper.jpg" }, { name: "Shadow", topSpeed: 210, zeroToSixty: 3.8, bhp: 420, handling: 90, image: "/cars/shadow.jpg" }, { name: "Blaze", topSpeed: 230, zeroToSixty: 3.3, bhp: 480, handling: 85, image: "/cars/blaze.jpg" } ];
 
 const loadImage = (file, callback) => { const reader = new FileReader(); reader.onload = e => callback(e.target.result); reader.readAsDataURL(file); };
 
@@ -12,7 +12,9 @@ const updateCarImage = (cars, carName, image) => cars.map(c => c.name === carNam
 
 { name: "Falcon", topSpeed: 220, zeroToSixty: 3.5, bhp: 450, handling: 80 }, { name: "Viper", topSpeed: 240, zeroToSixty: 3.1, bhp: 500, handling: 75 }, { name: "Shadow", topSpeed: 210, zeroToSixty: 3.8, bhp: 420, handling: 90 }, { name: "Blaze", topSpeed: 230, zeroToSixty: 3.3, bhp: 480, handling: 85 } ];
 
-function speedPerTick(car) { const accelFactor = 1 / car.zeroToSixty; const handlingFactor = car.handling / 100; return (car.topSpeed * 0.05) * accelFactor * handlingFactor; }
+function speedPerTick(car) { const accelFactor = 1 / car.zeroToSixty; const handlingFactor = car.handling / 100; const speedFactor = car.topSpeed / 200;
+
+return BASE_INCREMENT * accelFactor * handlingFactor * speedFactor; }
 
 export default function RacingGame() { const [availableCars, setAvailableCars] = useState(carPool); const [player1, setPlayer1] = useState([]); const [player2, setPlayer2] = useState([]); const [turn, setTurn] = useState(1); const [positions, setPositions] = useState([]); const [racing, setRacing] = useState(false);
 
@@ -39,7 +41,7 @@ const interval = setInterval(() => {
     ...p,
     pos: Math.min(TRACK_LENGTH, p.pos + speedPerTick(p.car))
   })));
-}, 100);
+}, TICK_MS);
 
 return () => clearInterval(interval);
 
