@@ -1660,56 +1660,92 @@
     }
 
     function stepRacer(r, dtMs){
-      const dt = dtMs / 1000;
-      const track = state.track;
 
-      // Look ahead point to get severity (braking anticipation)
-      const lookAhead = clamp(r.v * 0.85, 18, 55); // meters
-      const here = track.sampleAtDistMeters(r.distance);
-      const ahead = track.sampleAtDistMeters(r.distance + lookAhead);
+  const dt = dtMs / 1000;
+  const track = state.track;
 
-      // We use ahead severity to start braking early.
-      const sev = clamp(lerp(here.severity, ahead.severity, 0.70), 0, 1);
+  // --- Look ahead to anticipate corners ---
+  const lookAhead = clamp(r.v * 1.05, 22, 75); // meters
+  const here = track.sampleAtDistMeters(r.distance);
+  const ahead = track.sampleAtDistMeters(r.distance + lookAhead);
 
-      // Compute caps
-      const vmaxStraight = r.perf.vmax;
-      const vmaxCorner = cornerCap(r.perf, sev);
-      const vcap = Math.min(vmaxStraight, vmaxCorner);
+  // Weighted severity (start braking early for sharp corners)
+  const sev = clamp(
+    lerp(here.severity, ahead.severity, 0.75),
+    0,
+    1
+  );
 
-      // If current velocity exceeds cap, brake
-      if (r.v > vcap){
-        // braking strength scales with severity
-        const brake = lerp(5.5, 10.5, sev); // m/s^2
-        r.v = Math.max(vcap, r.v - brake * dt);
-      } else {
-        // accelerate toward cap
-        const a = accelAtSpeed(r.perf, r.v);
-        r.v = Math.min(vcap, r.v + a * dt);
-      }
+  // --- Speed caps ---
+  const vmaxStraight = r.perf.vmax;
+  const vmaxCorner = cornerCap(r.perf, sev);
 
-      // Micro variance: slight "line imperfections"
-      if (state.microChaos){
-        // tiny random fluctuations in speed, more in corners
-        const jitter = (0.006 + sev*0.010) * (Math.random() - 0.5);
-        r.v = Math.max(0, r.v * (1 + jitter));
-      }
+  const vcap = Math.min(vmaxStraight, vmaxCorner);
 
-      // Advance distance
-      r.distance += r.v * dt;
+  // =============================
+  // BRAKING & ACCELERATION
+  // =============================
 
-      // Lap tracking
-      const lapMeters = track.lapMeters;
-      const newLap = Math.floor(r.distance / lapMeters);
+  if (r.v > vcap){
 
-      if (newLap > r.lap){
-        // record lap time
-        const lapTime = state.simMs - r.lastLapStartMs;
-        if (lapTime > 1000 && lapTime < 600000){
-          r.lapTimes.push(lapTime);
-        }
-        r.lap = newLap;
-        r.lastLapStartMs = state.simMs;
-      }
+    // HARD braking for sharp corners
+    const handlePenalty = lerp(2.4, 0.55, r.perf.handlingFactor);
+    const brakeForce = lerp(14, 30, sev) * handlePenalty;
+
+    r.v -= brakeForce * dt;
+
+  } else {
+
+    // Exit acceleration dominated by 0–60
+    const accel = accelAtSpeed(r.perf, r.v);
+    r.v += accel * dt;
+  }
+
+  // Clamp to physical limits
+  r.v = clamp(r.v, 0, vmaxStraight);
+
+  // =============================
+  // EXIT TRACTION (handling)
+  // =============================
+  if (sev > 0.35){
+
+    // Low handling loses speed on corner exits
+    const slip = lerp(0.22, 0.0, r.perf.handlingFactor);
+    r.v *= (1 - slip);
+  }
+
+  // =============================
+  // MICRO VARIANCE (optional realism)
+  // =============================
+  if (state.microChaos){
+
+    // More variance in sharp corners
+    const jitter = (0.004 + sev * 0.012) * (Math.random() - 0.5);
+    r.v = Math.max(0, r.v * (1 + jitter));
+  }
+
+  // =============================
+  // MOVE FORWARD
+  // =============================
+  r.distance += r.v * dt;
+
+  // =============================
+  // LAP TRACKING
+  // =============================
+  const lapMeters = track.lapMeters;
+  const newLap = Math.floor(r.distance / lapMeters);
+
+  if (newLap > r.lap){
+
+    const lapTime = state.simMs - r.lastLapStartMs;
+
+    if (lapTime > 1000 && lapTime < 600000){
+      r.lapTimes.push(lapTime);
+    }
+
+    r.lap = newLap;
+    r.lastLapStartMs = state.simMs;
+  }
     }
 
     function stepAll(dtMs){
