@@ -1569,22 +1569,20 @@
   return accel;
       }
     function cornerCap(perf, severity){
+
   const vmax = perf.vmax;
 
-  // Track effect (sharper corner = lower cap)
-  const trackFactor = lerp(1.0, 0.45, severity); // was 0.55
+  // Track harshness (very technical track)
+  const trackFactor = lerp(1.0, 0.33, severity);
 
-  // Handling curve (non-linear = big reward for high handling)
-  const h = clamp(perf.handlingFactor, 0.25, 0.85);
+  // Handling nonlinear dominance
+  const h = clamp(perf.handlingFactor, 0.25, 0.95);
+  const handlingCurve = Math.pow(h, 2.6);
 
-  // Exponential curve makes low handling MUCH worse
-  const handleCurve = Math.pow(h, 1.6);
-
-  // Final cap
-  const cap = vmax * trackFactor * handleCurve;
+  const cap = vmax * trackFactor * handlingCurve;
 
   return Math.min(cap, vmax);
-      }
+}
 
     /* ============================================================
       SECTION 11 • RACE SIM
