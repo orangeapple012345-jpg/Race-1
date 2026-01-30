@@ -1,0 +1,120 @@
+import React, { useState, useEffect } from "react"; import { motion } from "framer-motion";
+
+const TRACK_LENGTH = 1000; // arbitrary units
+
+const carPool = [ { name: "Falcon", topSpeed: 220, zeroToSixty: 3.5, bhp: 450, handling: 80, image: null }, { name: "Viper", topSpeed: 240, zeroToSixty: 3.1, bhp: 500, handling: 75, image: null }, { name: "Shadow", topSpeed: 210, zeroToSixty: 3.8, bhp: 420, handling: 90, image: null }, { name: "Blaze", topSpeed: 230, zeroToSixty: 3.3, bhp: 480, handling: 85, image: null } ];
+
+const loadImage = (file, callback) => { const reader = new FileReader(); reader.onload = e => callback(e.target.result); reader.readAsDataURL(file); };
+
+const updateCarImage = (cars, carName, image) => cars.map(c => c.name === carName ? { ...c, image } : c);
+
+// ----------------------
+
+{ name: "Falcon", topSpeed: 220, zeroToSixty: 3.5, bhp: 450, handling: 80 }, { name: "Viper", topSpeed: 240, zeroToSixty: 3.1, bhp: 500, handling: 75 }, { name: "Shadow", topSpeed: 210, zeroToSixty: 3.8, bhp: 420, handling: 90 }, { name: "Blaze", topSpeed: 230, zeroToSixty: 3.3, bhp: 480, handling: 85 } ];
+
+function speedPerTick(car) { const accelFactor = 1 / car.zeroToSixty; const handlingFactor = car.handling / 100; return (car.topSpeed * 0.05) * accelFactor * handlingFactor; }
+
+export default function RacingGame() { const [availableCars, setAvailableCars] = useState(carPool); const [player1, setPlayer1] = useState([]); const [player2, setPlayer2] = useState([]); const [turn, setTurn] = useState(1); const [positions, setPositions] = useState([]); const [racing, setRacing] = useState(false);
+
+const pickCar = (car) => { if (racing) return;
+
+if (turn === 1 && player1.length < 2) {
+  setPlayer1([...player1, car]);
+  setTurn(2);
+} else if (turn === 2 && player2.length < 2) {
+  setPlayer2([...player2, car]);
+  setTurn(1);
+}
+
+setAvailableCars(availableCars.filter(c => c !== car));
+
+};
+
+const startRace = () => { const allCars = [...player1, ...player2]; setPositions(allCars.map(car => ({ car, pos: 0 }))); setRacing(true); };
+
+useEffect(() => { if (!racing) return;
+
+const interval = setInterval(() => {
+  setPositions(prev => prev.map(p => ({
+    ...p,
+    pos: Math.min(TRACK_LENGTH, p.pos + speedPerTick(p.car))
+  })));
+}, 100);
+
+return () => clearInterval(interval);
+
+}, [racing]);
+
+return ( <div className="p-6 max-w-4xl mx-auto"> <h1 className="text-3xl font-bold mb-4">Car Racing Draft Simulator</h1>
+
+<div className="grid grid-cols-2 gap-4">
+    <div>
+      <h2 className="font-semibold">Available Cars</h2>
+      {availableCars.map(car => (
+        <div key={car.name} className="border rounded p-2 my-2">
+        <button
+          key={car.name}
+          onClick={() => pickCar(car)}
+          className="block w-full border rounded p-2 my-1 hover:bg-gray-100"
+        >
+          {car.name} | Top: {car.topSpeed} | 0-60: {car.zeroToSixty}s | Handling: {car.handling}
+        </button>
+                    {car.image && (
+            <img src={car.image} alt={car.name} className="w-full h-24 object-cover rounded mb-2" />
+          )}
+
+          <input
+            type="file"
+            accept="image/*"
+            className="mb-2"
+            onChange={e => {
+              const file = e.target.files[0];
+              if (!file) return;
+              loadImage(file, img => setAvailableCars(prev => updateCarImage(prev, car.name, img)));
+            }}
+          />
+
+          <button
+            onClick={() => pickCar(car)}
+            className="block w-full border rounded p-2 hover:bg-gray-100"
+          >
+            {car.name} | Top: {car.topSpeed} | 0-60: {car.zeroToSixty}s | Handling: {car.handling}
+          </button>
+        </div>
+      ))}
+    </div>
+
+    <div>
+      <h2 className="font-semibold">Player Picks</h2>
+      <p>Player 1: {player1.map(c => c.name).join(", ")}</p>
+      <p>Player 2: {player2.map(c => c.name).join(", ")}</p>
+    </div>
+  </div>
+
+  {player1.length === 2 && player2.length === 2 && !racing && (
+    <button
+      onClick={startRace}
+      className="mt-4 px-4 py-2 bg-black text-white rounded"
+    >
+      Start Race
+    </button>
+  )}
+
+  <div className="mt-8 border rounded p-4 relative h-40 overflow-hidden">
+    <div className="absolute top-2 right-2 text-sm">Finish →</div>
+
+    {positions.map((p, i) => (
+      <motion.div
+        key={p.car.image ? <img src={p.car.image} alt={p.car.name} className="w-full h-full object-cover rounded" /> : p.car.name}
+        className="h-6 w-24 rounded bg-gray-800 text-white text-xs flex items-center justify-center absolute"
+        style={{ top: i * 30 }}
+        animate={{ x: (p.pos / TRACK_LENGTH) * 600 }}
+        transition={{ linear: true, duration: 0.1 }}
+      >
+        {p.car.name}
+      </motion.div>
+    ))}
+  </div>
+</div>
+
+); }
