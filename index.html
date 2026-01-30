@@ -1793,51 +1793,64 @@
     }
 
     function drawTrack(track){
-      const pts = track.pts;
+  const pts = track.pts;
 
-      // Road (thick)
-      ctx.save();
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
 
-      ctx.strokeStyle = "rgba(0,0,0,0.40)";
-      ctx.lineWidth = 54;
-      ctx.beginPath();
-      for (let i=0;i<pts.length;i++){
-        const p = pts[i];
-        if (i===0) ctx.moveTo(p.x, p.y);
-        else ctx.lineTo(p.x, p.y);
-      }
-      ctx.closePath();
-      ctx.stroke();
+  // --- Runoff area ---
+  ctx.strokeStyle = "rgba(20,20,20,0.9)";
+  ctx.lineWidth = 82;
+  ctx.beginPath();
+  smoothPath(pts);
+  ctx.stroke();
 
-      // Edge line
-      ctx.strokeStyle = "rgba(255,255,255,0.10)";
-      ctx.lineWidth = 6;
-      ctx.beginPath();
-      for (let i=0;i<pts.length;i++){
-        const p = pts[i];
-        if (i===0) ctx.moveTo(p.x, p.y);
-        else ctx.lineTo(p.x, p.y);
-      }
-      ctx.closePath();
-      ctx.stroke();
+  // --- Asphalt ---
+  ctx.strokeStyle = "#2a2a2a";
+  ctx.lineWidth = 60;
+  ctx.beginPath();
+  smoothPath(pts);
+  ctx.stroke();
 
-      // Center line (dashed)
-      ctx.strokeStyle = "rgba(255,255,255,0.08)";
-      ctx.lineWidth = 2;
-      ctx.setLineDash([10,10]);
-      ctx.beginPath();
-      for (let i=0;i<pts.length;i++){
-        const p = pts[i];
-        if (i===0) ctx.moveTo(p.x, p.y);
-        else ctx.lineTo(p.x, p.y);
-      }
-      ctx.closePath();
-      ctx.stroke();
-      ctx.setLineDash([]);
+  // --- Edge lines ---
+  ctx.strokeStyle = "rgba(255,255,255,0.18)";
+  ctx.lineWidth = 6;
+  ctx.beginPath();
+  smoothPath(pts);
+  ctx.stroke();
 
-      ctx.restore();
+  // --- Center dashed ---
+  ctx.setLineDash([18,14]);
+  ctx.strokeStyle = "rgba(255,255,255,0.12)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  smoothPath(pts);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.restore();
+    } 
+
+    function smoothPath(points){
+  ctx.moveTo(points[0].x, points[0].y);
+
+  for(let i=1;i<points.length-1;i++){
+    const midX = (points[i].x + points[i+1].x) / 2;
+    const midY = (points[i].y + points[i+1].y) / 2;
+
+    ctx.quadraticCurveTo(
+      points[i].x,
+      points[i].y,
+      midX,
+      midY
+    );
+  }
+
+  const last = points[points.length-1];
+  ctx.lineTo(last.x,last.y);
+  ctx.closePath();
+    }
 
       // Start/finish marker near first point segment
       const start = pts[0];
