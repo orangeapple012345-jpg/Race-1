@@ -1538,40 +1538,36 @@
     }
 
     function accelAtSpeed(perf, v){
-      // Realistic-ish acceleration:
-      // - Below 60: near a0 but slightly traction-limited
-      // - Above 60: diminishing as v approaches vmax
-      // - BHP gives extra mid-range pull
-      // This is not a perfect physics sim, but it behaves as requested.
 
-      const { vmax, v60, a0, exp, bhpBoost } = perf;
+  const vmax = perf.vmax;
+  const v60 = perf.v60;
 
-      // Traction-limited cap: strong cars can't do insane 0 speed accel
-      // This is "feel" tuning.
-      const tractionCap = 11.0; // m/s^2 ~ 1.1g
-      const aLow = Math.min(a0 * 1.06, tractionCap);
+  // Strong dependence on 0–60 time
+  const baseAccel = perf.a0 * 1.15;
 
-      if (v < v60){
-        // small decay as speed rises
-        const t = clamp(v / v60, 0, 1);
-        return aLow * lerp(1.0, 0.86, t);
+  // Traction limit
+  const tractionLimit = 10.5;
+
+  let accel;
+
+  if(v < v60){
+
+    // 0–60 zone = HUGE impact
+    accel = Math.min(baseAccel, tractionLimit);
+
+  } else {
+
+    // From 60 to top speed = slower climb (realistic drag)
+    const x = v / vmax;
+
+    accel = baseAccel * Math.pow(1 - x, 1.8);
+
+    // Prevent flatlining
+    accel = Math.max(accel, 0.12);
+  }
+
+  return accel;
       }
-
-      // Above 60: drag-limited curve
-      const x = clamp(v / Math.max(1e-9, vmax), 0, 1);
-      // Base diminishing
-      let a = a0 * 0.72 * Math.pow(1 - x, exp);
-
-      // Mid-range bhp boost (peaks around 0.45-0.65 of vmax)
-      const mid = Math.exp(-Math.pow((x - 0.55) / 0.18, 2));
-      a *= (1 + (bhpBoost - 1) * mid);
-
-      // Avoid zero accel far from vmax
-      a = Math.max(a, 0.15);
-
-      return a;
-    }
-
     function cornerCap(perf, severity){
   const vmax = perf.vmax;
 
