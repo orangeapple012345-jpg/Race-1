@@ -1573,28 +1573,22 @@
     }
 
     function cornerCap(perf, severity){
-      // severity 0 => straight -> cap is vmax
-      // severity 1 => sharp -> cap is significantly reduced
-      const { vmax, handlingFactor } = perf;
+  const vmax = perf.vmax;
 
-      // Track curvature factor
-      // 0 -> 1.00
-      // 1 -> ~0.55
-      const trackFactor = lerp(1.0, 0.55, clamp(severity, 0, 1));
+  // Track effect (sharper corner = lower cap)
+  const trackFactor = lerp(1.0, 0.45, severity); // was 0.55
 
-      // Handling:
-      // handlingFactor is 0.25..0.85 approx
-      // Convert to multiplier:
-      // low handling => smaller multiplier
-      // high handling => larger multiplier
-      const handleMul = lerp(0.55, 0.95, handlingFactor); // ~0.55..0.95
+  // Handling curve (non-linear = big reward for high handling)
+  const h = clamp(perf.handlingFactor, 0.25, 0.85);
 
-      // Overall corner cap
-      const cap = vmax * trackFactor * handleMul;
+  // Exponential curve makes low handling MUCH worse
+  const handleCurve = Math.pow(h, 1.6);
 
-      // Never allow corners to be faster than vmax
-      return Math.min(cap, vmax);
-    }
+  // Final cap
+  const cap = vmax * trackFactor * handleCurve;
+
+  return Math.min(cap, vmax);
+      }
 
     /* ============================================================
       SECTION 11 • RACE SIM
