@@ -1679,57 +1679,64 @@
     }
 
     function stepRacer(r, dtMs){
-      const dt = dtMs / 1000;
-      const track = state.track;
+  const dt = dtMs / 1000;
+  const track = state.track;
 
-      // Look ahead point to get severity (braking anticipation)
-      const lookAhead = clamp(r.v * 0.85, 18, 55); // meters
-      const here = track.sampleAtDistMeters(r.distance);
-      const ahead = track.sampleAtDistMeters(r.distance + lookAhead);
+  // Look ahead distance increases with speed
+  const lookAhead = clamp(r.v * 1.1, 25, 80);
 
-      // We use ahead severity to start braking early.
-      const sev = clamp(lerp(here.severity, ahead.severity, 0.70), 0, 1);
+  const now = track.sampleAtDistMeters(r.distance);
+  const ahead = track.sampleAtDistMeters(r.distance + lookAhead);
 
-      // Compute caps
-      const vmaxStraight = r.perf.vmax;
-      const vmaxCorner = cornerCap(r.perf, sev);
-      const vcap = Math.min(vmaxStraight, vmaxCorner);
+  const severity = clamp(
+    now.severity * 0.4 + ahead.severity * 0.6,
+    0,
+    1
+  );
 
-      // If current velocity exceeds cap, brake
-      if (r.v > vcap){
-        // braking strength scales with severity
-        const brake = lerp(5.5, 10.5, sev); // m/s^2
-        r.v = Math.max(vcap, r.v - brake * dt);
-      } else {
-        // accelerate toward cap
-        const a = accelAtSpeed(r.perf, r.v);
-        r.v = Math.min(vcap, r.v + a * dt);
-      }
+  const vmaxStraight = r.perf.vmax;
+  const vmaxCorner = cornerCap(r.perf, severity);
 
-      // Micro variance: slight "line imperfections"
-      if (state.microChaos){
-        // tiny random fluctuations in speed, more in corners
-        const jitter = (0.006 + sev*0.010) * (Math.random() - 0.5);
-        r.v = Math.max(0, r.v * (1 + jitter));
-      }
+  // --- Braking behaviour ---
+  if(r.v > vmaxCorner){
 
-      // Advance distance
-      r.distance += r.v * dt;
+    // heavier braking for sharper corners
+    const brakeForce = lerp(6, 14, severity);
+    r.v -= brakeForce * dt;
 
-      // Lap tracking
-      const lapMeters = track.lapMeters;
-      const newLap = Math.floor(r.distance / lapMeters);
+  } else {
 
-      if (newLap > r.lap){
-        // record lap time
-        const lapTime = state.simMs - r.lastLapStartMs;
-        if (lapTime > 1000 && lapTime < 600000){
-          r.lapTimes.push(lapTime);
-        }
-        r.lap = newLap;
-        r.lastLapStartMs = state.simMs;
-      }
+    // acceleration on straights and exits
+    const accel = accelAtSpeed(r.perf, r.v);
+    r.v += accel * dt;
+  }
+
+  r.v = clamp(r.v, 0, vmaxStraight);
+
+  // --- Micro errors ---
+  if(state.microChaos){
+    const wobble = (Math.random()-0.5) * severity * 0.02;
+    r.v *= (1 + wobble);
+  }
+
+  // Move forward
+  r.distance += r.v * dt;
+
+  // Lap detection
+  const lapLen = track.lapMeters;
+  const newLap = Math.floor(r.distance / lapLen);
+
+  if(newLap > r.lap){
+    const lapTime = state.simMs - r.lastLapStartMs;
+
+    if(lapTime > 1000){
+      r.lapTimes.push(lapTime);
     }
+
+    r.lap = newLap;
+    r.lastLapStartMs = state.simMs;
+  }
+}
 
     function stepAll(dtMs){
       for (const r of state.racers){
