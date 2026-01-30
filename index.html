@@ -1,122 +1,1849 @@
-import React, { useState, useEffect } from "react"; import { motion } from "framer-motion";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- ==========================================================
+    Race-1 • Draft & Race (Single-file, GitHub Pages friendly)
+    - 500+ lines, in-depth draft + racing sim
+    - Images expected in /cars/
+    - No frameworks required
+  =========================================================== -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Race-1 • Draft & Race</title>
 
-const TRACK_LENGTH = 1000; // track distance units const TICK_MS = 100; // update every 100ms (~10 frames/sec) const RACE_TIME_SECONDS = 120; // target race duration ~2 minutes const BASE_INCREMENT = TRACK_LENGTH / (RACE_TIME_SECONDS * (1000 / TICK_MS));
+  <style>
+    /* ==========================================================
+      THEME + RESET
+    =========================================================== */
+    :root{
+      --bg: #0b0f17;
+      --panel: rgba(255,255,255,0.04);
+      --panel2: rgba(255,255,255,0.06);
+      --border: rgba(255,255,255,0.10);
+      --border2: rgba(255,255,255,0.14);
+      --text: #e8eef8;
+      --muted: #a9b7ce;
+      --good: #4ade80;
+      --blue: #60a5fa;
+      --warn: #fbbf24;
+      --bad: #fb7185;
+      --shadow: 0 18px 40px rgba(0,0,0,0.45);
+      --shadow2: 0 10px 22px rgba(0,0,0,0.35);
+      --radius: 18px;
+      --radius2: 14px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
 
-const carPool = [ { name: "Falcon", topSpeed: 220, zeroToSixty: 3.5, bhp: 450, handling: 80, image: "/cars/falcon.jpg" }, { name: "Viper", topSpeed: 240, zeroToSixty: 3.1, bhp: 500, handling: 75, image: "/cars/viper.jpg" }, { name: "Shadow", topSpeed: 210, zeroToSixty: 3.8, bhp: 420, handling: 90, image: "/cars/shadow.jpg" }, { name: "Blaze", topSpeed: 230, zeroToSixty: 3.3, bhp: 480, handling: 85, image: "/cars/blaze.jpg" } ];
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family: var(--sans);
+      color: var(--text);
+      background:
+        radial-gradient(1100px 700px at 10% -10%, rgba(96,165,250,0.18), transparent 55%),
+        radial-gradient(1000px 700px at 90% 0%, rgba(74,222,128,0.12), transparent 55%),
+        radial-gradient(900px 650px at 50% 115%, rgba(251,191,36,0.10), transparent 55%),
+        var(--bg);
+    }
 
-const loadImage = (file, callback) => { const reader = new FileReader(); reader.onload = e => callback(e.target.result); reader.readAsDataURL(file); };
+    a{ color:inherit; }
+    code{
+      font-family: var(--mono);
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.10);
+      padding: 2px 6px;
+      border-radius: 10px;
+    }
 
-const updateCarImage = (cars, carName, image) => cars.map(c => c.name === carName ? { ...c, image } : c);
+    /* ==========================================================
+      LAYOUT
+    =========================================================== */
+    .header{
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 14px 18px;
+      background: rgba(8,12,19,0.75);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+    }
+    .brand{
+      display:flex;
+      align-items:center;
+      gap: 12px;
+      min-width: 220px;
+    }
+    .logo{
+      width: 46px;
+      height: 46px;
+      display:grid;
+      place-items:center;
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(96,165,250,0.18), rgba(74,222,128,0.12));
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow2);
+      font-size: 20px;
+    }
+    .brand h1{
+      margin:0;
+      font-size: 1.1rem;
+      letter-spacing: -0.02em;
+    }
+    .brand .sub{
+      color: var(--muted);
+      font-size: 0.88rem;
+      margin-top: 2px;
+    }
 
-// ----------------------
+    .header-actions{
+      display:flex;
+      gap: 10px;
+      align-items:center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
 
-{ name: "Falcon", topSpeed: 220, zeroToSixty: 3.5, bhp: 450, handling: 80 }, { name: "Viper", topSpeed: 240, zeroToSixty: 3.1, bhp: 500, handling: 75 }, { name: "Shadow", topSpeed: 210, zeroToSixty: 3.8, bhp: 420, handling: 90 }, { name: "Blaze", topSpeed: 230, zeroToSixty: 3.3, bhp: 480, handling: 85 } ];
+    .btn{
+      cursor:pointer;
+      border: 1px solid var(--border2);
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      border-radius: 14px;
+      padding: 10px 12px;
+      font-weight: 750;
+      letter-spacing: -0.01em;
+      transition: transform 0.08s ease, background 0.15s ease, opacity 0.15s ease;
+      user-select: none;
+    }
+    .btn:hover{ transform: translateY(-1px); background: rgba(255,255,255,0.09); }
+    .btn:active{ transform: translateY(0px); }
+    .btn:disabled{ opacity: 0.5; cursor: not-allowed; transform:none; }
 
-function speedPerTick(car) { const accelFactor = 1 / car.zeroToSixty; const handlingFactor = car.handling / 100; const speedFactor = car.topSpeed / 200;
+    .btn-primary{
+      border-color: rgba(74,222,128,0.35);
+      background: rgba(74,222,128,0.14);
+    }
+    .btn-primary:hover{ background: rgba(74,222,128,0.18); }
 
-return BASE_INCREMENT * accelFactor * handlingFactor * speedFactor; }
+    .btn-secondary{
+      border-color: rgba(96,165,250,0.38);
+      background: rgba(96,165,250,0.12);
+    }
+    .btn-secondary:hover{ background: rgba(96,165,250,0.16); }
 
-export default function RacingGame() { const [availableCars, setAvailableCars] = useState(carPool); const [player1, setPlayer1] = useState([]); const [player2, setPlayer2] = useState([]); const [turn, setTurn] = useState(1); const [positions, setPositions] = useState([]); const [racing, setRacing] = useState(false);
+    .btn-danger{
+      border-color: rgba(251,113,133,0.35);
+      background: rgba(251,113,133,0.12);
+    }
+    .btn-danger:hover{ background: rgba(251,113,133,0.16); }
 
-const pickCar = (car) => { if (racing) return;
+    .wrap{
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 18px;
+    }
 
-if (turn === 1 && player1.length < 2) {
-  setPlayer1([...player1, car]);
-  setTurn(2);
-} else if (turn === 2 && player2.length < 2) {
-  setPlayer2([...player2, car]);
-  setTurn(1);
-}
+    .grid{
+      display:grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 16px;
+    }
+    @media (max-width: 1100px){
+      .grid{ grid-template-columns: 1fr; }
+    }
 
-setAvailableCars(availableCars.filter(c => c !== car));
+    .panel{
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(255,255,255,0.05), transparent 50%),
+                  rgba(16,24,39,0.50);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
 
-};
+    .panel-h{
+      padding: 14px 14px 12px 14px;
+      border-bottom: 1px solid var(--border);
+      display:flex;
+      align-items:flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .panel-h h2{
+      margin:0;
+      font-size: 1.1rem;
+    }
 
-const startRace = () => { const allCars = [...player1, ...player2]; setPositions(allCars.map(car => ({ car, pos: 0 }))); setRacing(true); };
+    .pills{
+      display:flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .pill{
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.05);
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 0.86rem;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .pill strong{ color: var(--text); }
 
-useEffect(() => { if (!racing) return;
+    /* ==========================================================
+      DRAFT SECTION
+    =========================================================== */
+    .draft-top{
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 700px){
+      .draft-top{ grid-template-columns: 1fr; }
+    }
 
-const interval = setInterval(() => {
-  setPositions(prev => prev.map(p => ({
-    ...p,
-    pos: Math.min(TRACK_LENGTH, p.pos + speedPerTick(p.car))
-  })));
-}, TICK_MS);
+    .team{
+      border: 1px solid var(--border);
+      border-radius: var(--radius2);
+      background: rgba(0,0,0,0.16);
+      padding: 10px;
+    }
+    .team .title{
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+    .team .title .name{
+      font-weight: 850;
+      letter-spacing: -0.02em;
+    }
+    .team .title .tag{
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
 
-return () => clearInterval(interval);
+    .chips{
+      display:flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      min-height: 60px;
+    }
 
-}, [racing]);
+    .chip{
+      display:flex;
+      align-items:center;
+      gap: 8px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 10px;
+      background: rgba(255,255,255,0.05);
+    }
+    .chip img{
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      object-fit: cover;
+      border: 1px solid rgba(255,255,255,0.14);
+    }
+    .chip .cname{
+      font-weight: 800;
+      font-size: 0.88rem;
+    }
+    .chip .cmeta{
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
 
-return ( <div className="p-6 max-w-4xl mx-auto"> <h1 className="text-3xl font-bold mb-4">Car Racing Draft Simulator</h1>
+    .draft-controls{
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
 
-<div className="grid grid-cols-2 gap-4">
-    <div>
-      <h2 className="font-semibold">Available Cars</h2>
-      {availableCars.map(car => (
-        <div key={car.name} className="border rounded p-2 my-2">
-        <button
-          key={car.name}
-          onClick={() => pickCar(car)}
-          className="block w-full border rounded p-2 my-1 hover:bg-gray-100"
-        >
-          {car.name} | Top: {car.topSpeed} | 0-60: {car.zeroToSixty}s | Handling: {car.handling}
-        </button>
-                    {car.image && (
-            <img src={car.image} alt={car.name} className="w-full h-24 object-cover rounded mb-2" />
-          )}
+    .toggle{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+    .toggle input{ transform: scale(1.2); }
 
-          <input
-            type="file"
-            accept="image/*"
-            className="mb-2"
-            onChange={e => {
-              const file = e.target.files[0];
-              if (!file) return;
-              loadImage(file, img => setAvailableCars(prev => updateCarImage(prev, car.name, img)));
-            }}
-          />
+    .pool{
+      padding: 12px 14px 14px 14px;
+    }
 
-          <button
-            onClick={() => pickCar(car)}
-            className="block w-full border rounded p-2 hover:bg-gray-100"
-          >
-            {car.name} | Top: {car.topSpeed} | 0-60: {car.zeroToSixty}s | Handling: {car.handling}
-          </button>
+    .pool-h{
+      display:flex;
+      align-items:flex-end;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .pool-h .hint{
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.3;
+    }
+
+    .search{
+      display:flex;
+      align-items:center;
+      gap: 8px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: rgba(255,255,255,0.05);
+      padding: 6px 10px;
+      min-width: 240px;
+    }
+    .search input{
+      width: 100%;
+      border: none;
+      outline:none;
+      background: transparent;
+      color: var(--text);
+      font-size: 0.95rem;
+    }
+
+    .car-grid{
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0,1fr));
+      gap: 12px;
+    }
+    @media (max-width: 1100px){
+      .car-grid{ grid-template-columns: repeat(2, minmax(0,1fr)); }
+    }
+    @media (max-width: 650px){
+      .car-grid{ grid-template-columns: 1fr; }
+    }
+
+    .card{
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(0,0,0,0.12));
+      overflow:hidden;
+      box-shadow: var(--shadow2);
+      display:flex;
+      flex-direction: column;
+      min-height: 330px;
+      transition: transform 0.12s ease, border 0.15s ease, opacity 0.15s ease;
+    }
+    .card:hover{ transform: translateY(-2px); border-color: rgba(255,255,255,0.20); }
+    .card.disabled{
+      opacity: 0.45;
+      pointer-events: none;
+      transform: none;
+    }
+
+    .thumb{
+      height: 160px;
+      border-bottom: 1px solid var(--border);
+      position: relative;
+      background: rgba(255,255,255,0.03);
+    }
+    .thumb img{
+      width:100%;
+      height:100%;
+      object-fit: cover;
+      display:block;
+    }
+    .badge{
+      position:absolute;
+      top: 10px;
+      left: 10px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(0,0,0,0.35);
+      backdrop-filter: blur(6px);
+      font-size: 0.82rem;
+    }
+
+    .card-body{
+      padding: 12px;
+      display:flex;
+      flex-direction: column;
+      gap: 10px;
+      flex:1;
+    }
+    .card-name{
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .card-name .n{
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      font-size: 1.03rem;
+    }
+    .card-name .cls{
+      font-size: 0.8rem;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.04);
+    }
+
+    .stats{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .stat{
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: rgba(255,255,255,0.04);
+      padding: 8px;
+    }
+    .stat .k{ color: var(--muted); font-size: 0.74rem; }
+    .stat .v{ font-weight: 900; font-size: 1.0rem; }
+
+    .card-foot{
+      padding: 12px;
+      border-top: 1px solid var(--border);
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .small{
+      color: var(--muted);
+      font-size: 0.85rem;
+      line-height: 1.25;
+    }
+
+    /* ==========================================================
+      RACE SECTION
+    =========================================================== */
+    .race-wrap{
+      padding: 12px 14px 14px 14px;
+    }
+
+    .canvas-wrap{
+      position: relative;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow:hidden;
+      background: rgba(0,0,0,0.16);
+    }
+
+    canvas{
+      display:block;
+      width: 100%;
+      height: auto;
+    }
+
+    .overlay{
+      position:absolute;
+      inset: 0;
+      display:grid;
+      place-items:center;
+      pointer-events:none;
+      background: radial-gradient(900px 500px at 50% 30%, rgba(0,0,0,0.30), rgba(0,0,0,0.55));
+    }
+    .overlay.hidden{ display:none; }
+    .overlay-card{
+      pointer-events:none;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(0,0,0,0.35);
+      border-radius: 18px;
+      padding: 14px 16px;
+      text-align:center;
+      max-width: 420px;
+      box-shadow: var(--shadow);
+    }
+    .overlay-card .t{
+      font-weight: 950;
+      font-size: 1.15rem;
+      margin-bottom: 6px;
+    }
+    .overlay-card .s{
+      color: var(--muted);
+      font-size: 0.95rem;
+      line-height: 1.35;
+    }
+
+    .race-bottom{
+      padding: 12px 14px 14px 14px;
+      border-top: 1px solid var(--border);
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .results{
+      border: 1px solid var(--border);
+      border-radius: var(--radius2);
+      background: rgba(0,0,0,0.14);
+      padding: 10px;
+    }
+
+    .results h3{
+      margin: 0 0 10px 0;
+      font-size: 1.0rem;
+    }
+
+    table{
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+    }
+    th,td{
+      padding: 10px 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      text-align:left;
+    }
+    th{ color: var(--muted); font-weight: 800; }
+    tr:last-child td{ border-bottom: none; }
+    .pos{
+      font-weight: 950;
+      width: 40px;
+    }
+
+    .footer{
+      padding: 16px 18px;
+      color: var(--muted);
+      text-align:center;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- ==========================================================
+    HEADER
+  =========================================================== -->
+  <header class="header">
+    <div class="brand">
+      <div class="logo">🏁</div>
+      <div>
+        <h1>Race-1</h1>
+        <div class="sub">Draft 3 cars each, then watch a 2-minute race</div>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button id="btnReset" class="btn btn-danger" type="button">Reset</button>
+      <button id="btnDemo" class="btn btn-secondary" type="button">Auto-Pick Demo</button>
+      <button id="btnStart" class="btn btn-primary" type="button" disabled>Start Race</button>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="grid">
+      <!-- ========================================================
+        DRAFT PANEL
+      ========================================================= -->
+      <section class="panel">
+        <div class="panel-h">
+          <h2>Draft</h2>
+          <div class="pills">
+            <div class="pill" id="pillTurn">Turn: <strong>Player 1</strong></div>
+            <div class="pill" id="pillPicks">Picks: <strong>0/3 • 0/3</strong></div>
+            <div class="pill" id="pillMode">Mode: <strong>Snake</strong></div>
+          </div>
         </div>
-      ))}
+
+        <div class="draft-top">
+          <div class="team">
+            <div class="title">
+              <div class="name">Player 1</div>
+              <div class="tag" id="p1Tag">Ready</div>
+            </div>
+            <div class="chips" id="p1Chips"></div>
+          </div>
+
+          <div class="team">
+            <div class="title">
+              <div class="name">Player 2</div>
+              <div class="tag" id="p2Tag">Ready</div>
+            </div>
+            <div class="chips" id="p2Chips"></div>
+          </div>
+        </div>
+
+        <div class="draft-controls">
+          <div class="toggle">
+            <label>
+              <input id="toggleSnake" type="checkbox" checked />
+              Snake Draft (1-2-2-1-1-2...)
+            </label>
+          </div>
+
+          <div class="toggle">
+            <label>
+              <input id="toggleChaos" type="checkbox" />
+              Chaos Events (small randomness)
+            </label>
+          </div>
+
+          <div class="toggle">
+            <label>
+              <input id="togglePit" type="checkbox" checked />
+              Tire Wear + Pit Stops
+            </label>
+          </div>
+        </div>
+
+        <div class="pool">
+          <div class="pool-h">
+            <div>
+              <div style="font-weight:900; font-size:1.02rem;">Car Pool</div>
+              <div class="hint">
+                Images must exist inside <code>cars/</code>.
+                Click a card to draft it.
+              </div>
+            </div>
+
+            <div class="search" title="Filter cars by name">
+              🔎 <input id="searchInput" placeholder="Search cars..." />
+            </div>
+          </div>
+
+          <div class="car-grid" id="carGrid"></div>
+        </div>
+      </section>
+
+      <!-- ========================================================
+        RACE PANEL
+      ========================================================= -->
+      <section class="panel">
+        <div class="panel-h">
+          <h2>Race</h2>
+          <div class="pills">
+            <div class="pill" id="pillStatus">Status: <strong>Drafting</strong></div>
+            <div class="pill" id="pillTime">Time: <strong>0:00 / 2:00</strong></div>
+            <div class="pill" id="pillLap">Lap: <strong>–</strong></div>
+          </div>
+        </div>
+
+        <div class="race-wrap">
+          <div class="canvas-wrap">
+            <canvas id="canvas" width="980" height="520"></canvas>
+            <div class="overlay" id="overlay">
+              <div class="overlay-card">
+                <div class="t">Ready to Race</div>
+                <div class="s">
+                  Draft <b>3 cars</b> for each player to enable <b>Start Race</b>.<br/>
+                  Tip: use Auto-Pick Demo if you just want to watch.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="race-bottom">
+          <div class="results">
+            <h3>Results</h3>
+            <div id="resultsArea" class="small">No race yet.</div>
+          </div>
+        </div>
+      </section>
     </div>
 
-    <div>
-      <h2 className="font-semibold">Player Picks</h2>
-      <p>Player 1: {player1.map(c => c.name).join(", ")}</p>
-      <p>Player 2: {player2.map(c => c.name).join(", ")}</p>
+    <div class="footer">
+      Static HTML/CSS/JS • Works on GitHub Pages • Car images from <code>/cars</code>
     </div>
   </div>
 
-  {player1.length === 2 && player2.length === 2 && !racing && (
-    <button
-      onClick={startRace}
-      className="mt-4 px-4 py-2 bg-black text-white rounded"
-    >
-      Start Race
-    </button>
-  )}
+  <script>
+    /* ==========================================================
+      RACE-1 • GAME SCRIPT (in-depth, single-file)
+      ----------------------------------------------------------
+      Overview:
+        - Draft: 2 players, 3 picks each (6 total)
+        - Snake draft optional (default ON)
+        - Race: oval track with straights & corners
+        - Stats: topSpeed, zeroToSixty, bhp, handling
+        - Physics-lite:
+            * acceleration curve influenced by 0-60 + bhp
+            * speed cap from topSpeed
+            * corner speed penalty from handling
+            * slipstream on straights
+            * tire wear & pit stops (optional)
+            * small random events (optional)
+        - Race duration: targets ~120s real time
+    =========================================================== */
 
-  <div className="mt-8 border rounded p-4 relative h-40 overflow-hidden">
-    <div className="absolute top-2 right-2 text-sm">Finish →</div>
+    /* ==========================================================
+      UTILITIES
+    =========================================================== */
 
-    {positions.map((p, i) => (
-      <motion.div
-        key={p.car.image ? <img src={p.car.image} alt={p.car.name} className="w-full h-full object-cover rounded" /> : p.car.name}
-        className="h-6 w-24 rounded bg-gray-800 text-white text-xs flex items-center justify-center absolute"
-        style={{ top: i * 30 }}
-        animate={{ x: (p.pos / TRACK_LENGTH) * 600 }}
-        transition={{ linear: true, duration: 0.1 }}
-      >
-        {p.car.name}
-      </motion.div>
-    ))}
-  </div>
-</div>
+    function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+    function lerp(a, b, t){ return a + (b - a) * t; }
+    function rand(min, max){ return min + Math.random() * (max - min); }
+    function randInt(min, max){ return Math.floor(rand(min, max + 1)); }
 
-); }
+    function formatTime(ms){
+      const s = Math.max(0, Math.floor(ms / 1000));
+      const m = Math.floor(s / 60);
+      const r = s % 60;
+      return `${m}:${String(r).padStart(2, "0")}`;
+    }
+
+    // Deterministic-ish shuffle (seeded via simple LCG)
+    function seededShuffle(arr, seed){
+      let x = seed >>> 0;
+      const out = arr.slice();
+      for (let i = out.length - 1; i > 0; i--){
+        x = (1664525 * x + 1013904223) >>> 0;
+        const j = x % (i + 1);
+        [out[i], out[j]] = [out[j], out[i]];
+      }
+      return out;
+    }
+
+    /* ==========================================================
+      CAR LIBRARY
+      - Update images to match your /cars/ folder.
+      - Add more cars if you like.
+    =========================================================== */
+
+    const CAR_LIBRARY = [
+      // name, class, topSpeed (mph), zeroToSixty (s), bhp, handling (0-100), image path
+      { id:"falcon",  name:"Falcon",  cls:"GT",   topSpeed:220, zeroToSixty:3.4, bhp:460, handling:82, img:"cars/car1.png" },
+      { id:"viper",   name:"Viper",   cls:"GT",   topSpeed:235, zeroToSixty:3.1, bhp:510, handling:76, img:"cars/car2.png" },
+      { id:"shadow",  name:"Shadow",  cls:"Track",topSpeed:210, zeroToSixty:3.6, bhp:430, handling:90, img:"cars/car3.png" },
+      { id:"blaze",   name:"Blaze",   cls:"GT",   topSpeed:228, zeroToSixty:3.3, bhp:485, handling:84, img:"cars/car4.png" },
+      { id:"storm",   name:"Storm",   cls:"Track",topSpeed:205, zeroToSixty:3.8, bhp:410, handling:95, img:"cars/car5.png" },
+      { id:"phantom", name:"Phantom", cls:"Hyper",topSpeed:250, zeroToSixty:2.9, bhp:620, handling:78, img:"cars/car6.png" },
+
+      // extra cars for a deeper pool
+      { id:"ember",   name:"Ember",   cls:"GT",   topSpeed:225, zeroToSixty:3.2, bhp:495, handling:80, img:"cars/car7.png" },
+      { id:"quartz",  name:"Quartz",  cls:"Track",topSpeed:215, zeroToSixty:3.5, bhp:455, handling:92, img:"cars/car8.png" },
+      { id:"nova",    name:"Nova",    cls:"Hyper",topSpeed:245, zeroToSixty:2.95,bhp:640, handling:81, img:"cars/car9.png" },
+      { id:"raven",   name:"Raven",   cls:"GT",   topSpeed:232, zeroToSixty:3.25,bhp:520, handling:83, img:"cars/car10.png" }
+    ];
+
+    // State for whether a car is picked
+    function createPoolState(){
+      return CAR_LIBRARY.map(c => ({ ...c, picked:false }));
+    }
+
+    /* ==========================================================
+      DOM HOOKS
+    =========================================================== */
+
+    const el = {
+      btnReset: document.getElementById("btnReset"),
+      btnDemo: document.getElementById("btnDemo"),
+      btnStart: document.getElementById("btnStart"),
+
+      pillTurn: document.getElementById("pillTurn"),
+      pillPicks: document.getElementById("pillPicks"),
+      pillMode: document.getElementById("pillMode"),
+
+      p1Chips: document.getElementById("p1Chips"),
+      p2Chips: document.getElementById("p2Chips"),
+      p1Tag: document.getElementById("p1Tag"),
+      p2Tag: document.getElementById("p2Tag"),
+
+      toggleSnake: document.getElementById("toggleSnake"),
+      toggleChaos: document.getElementById("toggleChaos"),
+      togglePit: document.getElementById("togglePit"),
+
+      searchInput: document.getElementById("searchInput"),
+      carGrid: document.getElementById("carGrid"),
+
+      pillStatus: document.getElementById("pillStatus"),
+      pillTime: document.getElementById("pillTime"),
+      pillLap: document.getElementById("pillLap"),
+
+      canvas: document.getElementById("canvas"),
+      overlay: document.getElementById("overlay"),
+      resultsArea: document.getElementById("resultsArea"),
+    };
+
+    const ctx = el.canvas.getContext("2d");
+
+    /* ==========================================================
+      DRAFT STATE
+    =========================================================== */
+
+    const PICKS_PER_PLAYER = 3;
+
+    const state = {
+      // draft
+      pool: createPoolState(),
+      p1: [],
+      p2: [],
+      turn: 1,          // 1 or 2
+      pickIndex: 0,     // overall pick count (0..5)
+      snake: true,
+
+      // options
+      chaos: false,
+      pit: true,
+
+      // race
+      racing: false,
+      raceStartMs: 0,
+      lastFrameMs: 0,
+      simTimeMs: 0,
+      raceDurationMs: 120000, // 2 minutes target
+      lapsTarget: 8,          // will be tuned automatically
+      racers: [],
+      images: new Map(),
+      track: null,
+      results: null,
+      seed: 12345
+    };
+
+    /* ==========================================================
+      DRAFT TURN LOGIC
+      Snake draft default sequence for 6 picks:
+        pick 0: P1
+        pick 1: P2
+        pick 2: P2
+        pick 3: P1
+        pick 4: P1
+        pick 5: P2
+    =========================================================== */
+
+    function currentDrafter(){
+      if (!state.snake){
+        // simple alternating
+        return state.pickIndex % 2 === 0 ? 1 : 2;
+      }
+      // snake pattern for 2 players
+      const seq = [1,2,2,1,1,2]; // for 6 picks total
+      return seq[state.pickIndex] ?? (state.pickIndex % 2 === 0 ? 1 : 2);
+    }
+
+    function draftComplete(){
+      return state.p1.length === PICKS_PER_PLAYER && state.p2.length === PICKS_PER_PLAYER;
+    }
+
+    /* ==========================================================
+      IMAGE PRELOAD (for car sprites)
+    =========================================================== */
+
+    function loadImage(path){
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = path;
+      });
+    }
+
+    async function preloadAllImages(){
+      const tasks = state.pool.map(async c => {
+        if (state.images.has(c.img)) return;
+        const img = await loadImage(c.img);
+        state.images.set(c.img, img);
+      });
+      await Promise.all(tasks);
+    }
+
+    /* ==========================================================
+      UI RENDERING
+    =========================================================== */
+
+    function setPillHtml(node, label, strongText){
+      node.innerHTML = `${label}: <strong>${strongText}</strong>`;
+    }
+
+    function renderTeamChips(){
+      el.p1Chips.innerHTML = "";
+      el.p2Chips.innerHTML = "";
+
+      function addChip(container, car){
+        const div = document.createElement("div");
+        div.className = "chip";
+        const img = document.createElement("img");
+        img.src = car.img;
+        img.alt = car.name;
+        const meta = document.createElement("div");
+        meta.innerHTML = `
+          <div class="cname">${car.name}</div>
+          <div class="cmeta">${car.cls} • ${car.topSpeed}mph</div>
+        `;
+        div.appendChild(img);
+        div.appendChild(meta);
+        container.appendChild(div);
+      }
+
+      state.p1.forEach(c => addChip(el.p1Chips, c));
+      state.p2.forEach(c => addChip(el.p2Chips, c));
+
+      el.p1Tag.textContent = `${state.p1.length}/${PICKS_PER_PLAYER} drafted`;
+      el.p2Tag.textContent = `${state.p2.length}/${PICKS_PER_PLAYER} drafted`;
+    }
+
+    function renderPills(){
+      state.snake = el.toggleSnake.checked;
+      state.chaos = el.toggleChaos.checked;
+      state.pit = el.togglePit.checked;
+
+      setPillHtml(el.pillMode, "Mode", state.snake ? "Snake" : "Alternating");
+      setPillHtml(el.pillTurn, "Turn", `Player ${currentDrafter()}`);
+      setPillHtml(el.pillPicks, "Picks", `${state.p1.length}/${PICKS_PER_PLAYER} • ${state.p2.length}/${PICKS_PER_PLAYER}`);
+
+      const startEnabled = draftComplete() && !state.racing;
+      el.btnStart.disabled = !startEnabled;
+
+      // overlay visibility
+      if (draftComplete() && !state.racing){
+        el.overlay.classList.add("hidden");
+      } else if (!state.racing){
+        el.overlay.classList.remove("hidden");
+      }
+    }
+
+    function carMatchesSearch(car, q){
+      if (!q) return true;
+      const s = q.toLowerCase().trim();
+      return (
+        car.name.toLowerCase().includes(s) ||
+        car.cls.toLowerCase().includes(s)
+      );
+    }
+
+    function renderCarGrid(){
+      const q = el.searchInput.value || "";
+      el.carGrid.innerHTML = "";
+
+      const drafter = currentDrafter();
+      const canPick = !state.racing && !draftComplete();
+
+      // Sort by class then speed (feel "pro")
+      const sorted = state.pool
+        .filter(c => carMatchesSearch(c, q))
+        .slice()
+        .sort((a,b) => {
+          if (a.picked !== b.picked) return a.picked ? 1 : -1;
+          if (a.cls !== b.cls) return a.cls.localeCompare(b.cls);
+          return b.topSpeed - a.topSpeed;
+        });
+
+      sorted.forEach(car => {
+        const card = document.createElement("div");
+        card.className = "card" + (car.picked || !canPick ? " disabled" : "");
+
+        const thumb = document.createElement("div");
+        thumb.className = "thumb";
+        thumb.innerHTML = `
+          <img src="${car.img}" alt="${car.name}"/>
+          <div class="badge">${car.cls}</div>
+        `;
+
+        const body = document.createElement("div");
+        body.className = "card-body";
+
+        const top = document.createElement("div");
+        top.className = "card-name";
+        top.innerHTML = `
+          <div class="n">${car.name}</div>
+          <div class="cls">${car.picked ? "Drafted" : "Available"}</div>
+        `;
+
+        const stats = document.createElement("div");
+        stats.className = "stats";
+        stats.innerHTML = `
+          <div class="stat"><div class="k">Top Speed</div><div class="v">${car.topSpeed} mph</div></div>
+          <div class="stat"><div class="k">0–60</div><div class="v">${car.zeroToSixty.toFixed(2)} s</div></div>
+          <div class="stat"><div class="k">BHP</div><div class="v">${car.bhp}</div></div>
+          <div class="stat"><div class="k">Handling</div><div class="v">${car.handling}</div></div>
+        `;
+
+        const foot = document.createElement("div");
+        foot.className = "card-foot";
+
+        const note = document.createElement("div");
+        note.className = "small";
+        note.innerHTML = car.picked
+          ? `Picked already`
+          : `Click to draft for <b>Player ${drafter}</b>`;
+
+        const pickBtn = document.createElement("button");
+        pickBtn.className = "btn btn-secondary";
+        pickBtn.type = "button";
+        pickBtn.textContent = "Draft";
+        pickBtn.disabled = car.picked || !canPick;
+
+        pickBtn.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          draftCar(car.id);
+        });
+
+        foot.appendChild(note);
+        foot.appendChild(pickBtn);
+
+        card.appendChild(thumb);
+        body.appendChild(top);
+        body.appendChild(stats);
+        card.appendChild(body);
+        card.appendChild(foot);
+
+        // Card click also drafts
+        card.addEventListener("click", () => {
+          if (pickBtn.disabled) return;
+          draftCar(car.id);
+        });
+
+        el.carGrid.appendChild(card);
+      });
+    }
+
+    function renderAll(){
+      renderTeamChips();
+      renderPills();
+      renderCarGrid();
+    }
+
+    /* ==========================================================
+      DRAFT ACTIONS
+    =========================================================== */
+
+    function draftCar(carId){
+      if (state.racing) return;
+      if (draftComplete()) return;
+
+      const car = state.pool.find(c => c.id === carId);
+      if (!car || car.picked) return;
+
+      const drafter = currentDrafter();
+      const team = drafter === 1 ? state.p1 : state.p2;
+
+      if (team.length >= PICKS_PER_PLAYER) return;
+
+      car.picked = true;
+      team.push({ ...car }); // store a copy
+
+      state.pickIndex++;
+
+      renderAll();
+    }
+
+    function resetGame(){
+      state.pool = createPoolState();
+      state.p1 = [];
+      state.p2 = [];
+      state.pickIndex = 0;
+      state.racing = false;
+      state.results = null;
+      state.racers = [];
+      state.simTimeMs = 0;
+
+      el.resultsArea.innerHTML = `<div class="small">No race yet.</div>`;
+      el.searchInput.value = "";
+
+      setPillHtml(el.pillStatus, "Status", "Drafting");
+      setPillHtml(el.pillTime, "Time", "0:00 / 2:00");
+      setPillHtml(el.pillLap, "Lap", "–");
+
+      el.overlay.classList.remove("hidden");
+
+      renderAll();
+      drawStaticTrack(); // show track immediately
+    }
+
+    function autoPickDemo(){
+      if (state.racing) return;
+      resetGame();
+
+      // Shuffle pool and draft first 6 in snake order
+      const seed = Date.now() & 0xffffffff;
+      state.seed = seed;
+
+      const shuffled = seededShuffle(state.pool.filter(c => !c.picked), seed);
+
+      // Make picks: always best available for that player's preference
+      // Preference:
+      //   P1 favors handling + 0-60
+      //   P2 favors top speed + bhp
+      for (let i = 0; i < 6; i++){
+        const drafter = currentDrafter();
+
+        let pick;
+        if (drafter === 1){
+          pick = shuffled
+            .filter(c => !c.picked)
+            .slice()
+            .sort((a,b) => {
+              const sa = (a.handling * 1.15) + (100 / a.zeroToSixty * 8) + (a.bhp * 0.01);
+              const sb = (b.handling * 1.15) + (100 / b.zeroToSixty * 8) + (b.bhp * 0.01);
+              return sb - sa;
+            })[0];
+        } else {
+          pick = shuffled
+            .filter(c => !c.picked)
+            .slice()
+            .sort((a,b) => {
+              const sa = (a.topSpeed * 1.2) + (a.bhp * 0.08) + (100 / a.zeroToSixty * 5);
+              const sb = (b.topSpeed * 1.2) + (b.bhp * 0.08) + (100 / b.zeroToSixty * 5);
+              return sb - sa;
+            })[0];
+        }
+
+        if (!pick) break;
+        draftCar(pick.id);
+      }
+    }
+
+    /* ==========================================================
+      TRACK MODEL
+      - We'll define an oval track with parametric position s in [0,1)
+      - Map s -> (x,y) using two straights + two semicircle corners
+      - Determine whether s is in straight/corner to apply handling penalty
+    =========================================================== */
+
+    function buildTrack(){
+      // Canvas reference space
+      const W = el.canvas.width;
+      const H = el.canvas.height;
+
+      // Oval geometry inside padding
+      const pad = 70;
+      const left = pad;
+      const right = W - pad;
+      const top = pad;
+      const bottom = H - pad;
+
+      // Corners are semicircles with radius based on height
+      const radius = (bottom - top) / 2;
+      const cxL = left + radius;
+      const cxR = right - radius;
+      const cy = (top + bottom) / 2;
+
+      // Straight lengths
+      const straight = (cxR - cxL);
+
+      // Total "track length" in arbitrary meters (scaled)
+      // We'll tune length so a typical car wins around 120s.
+      const trackMeters = 4200; // ~4.2km per lap (fictional)
+
+      // Segment proportions for s mapping
+      // We'll map s along:
+      // 0..a   = top straight (left to right)
+      // a..b   = right corner (top to bottom)
+      // b..c   = bottom straight (right to left)
+      // c..1   = left corner (bottom to top)
+      const perimPx = 2 * straight + 2 * Math.PI * radius;
+      const topStraightPx = straight;
+      const rightCornerPx = Math.PI * radius;
+      const bottomStraightPx = straight;
+      const leftCornerPx = Math.PI * radius;
+
+      const a = topStraightPx / perimPx;
+      const b = (topStraightPx + rightCornerPx) / perimPx;
+      const c = (topStraightPx + rightCornerPx + bottomStraightPx) / perimPx;
+
+      return {
+        W, H,
+        pad,
+        left, right, top, bottom,
+        radius,
+        cxL, cxR, cy,
+        straight,
+        trackMeters,
+        sA: a, sB: b, sC: c,
+        perimPx
+      };
+    }
+
+    function isCorner(s){
+      // in right corner or left corner
+      const t = state.track;
+      if (!t) return false;
+      return (s >= t.sA && s < t.sB) || (s >= t.sC && s < 1);
+    }
+
+    function trackPoint(s){
+      // returns x,y on oval and a "heading" angle for sprite rotation (optional)
+      const t = state.track;
+      const { cxL, cxR, cy, radius, sA, sB, sC } = t;
+
+      // Normalize s
+      s = ((s % 1) + 1) % 1;
+
+      // top straight
+      if (s < sA){
+        const u = s / sA;
+        const x = lerp(cxL, cxR, u);
+        const y = cy - radius;
+        const heading = 0; // east
+        return { x, y, heading };
+      }
+
+      // right corner (top->bottom), angle -90deg to +90deg
+      if (s < sB){
+        const u = (s - sA) / (sB - sA);
+        const ang = (-Math.PI/2) + u * Math.PI; // -90 to +90
+        const x = cxR + Math.cos(ang) * radius;
+        const y = cy + Math.sin(ang) * radius;
+        const heading = ang + Math.PI/2;
+        return { x, y, heading };
+      }
+
+      // bottom straight (right->left)
+      if (s < sC){
+        const u = (s - sB) / (sC - sB);
+        const x = lerp(cxR, cxL, u);
+        const y = cy + radius;
+        const heading = Math.PI; // west
+        return { x, y, heading };
+      }
+
+      // left corner (bottom->top), angle +90 to +270
+      {
+        const u = (s - sC) / (1 - sC);
+        const ang = (Math.PI/2) + u * Math.PI; // +90 to +270
+        const x = cxL + Math.cos(ang) * radius;
+        const y = cy + Math.sin(ang) * radius;
+        const heading = ang + Math.PI/2;
+        return { x, y, heading };
+      }
+    }
+
+    /* ==========================================================
+      RACE PHYSICS
+      - We simulate each car along track distance (meters) and convert
+        to s = distance / lapLength.
+      - Each car has:
+        * v (m/s)
+        * distance (m)
+        * lap
+        * wear
+        * pitCooldown
+        * eventCooldown
+      - Race ends at duration ~120s (real time), and winner is
+        greatest distance.
+    =========================================================== */
+
+    function mphToMs(mph){
+      return mph * 0.44704; // mph -> m/s
+    }
+
+    function computeCarPerformance(car){
+      // Convert car stats into sim coefficients
+      // Higher bhp & lower 0-60 => better accel
+      // Handling reduces corner penalty
+      // Top speed sets cap
+
+      const top = mphToMs(car.topSpeed);
+
+      // Map 0-60: 2.8..4.2 typical -> accel base
+      const z = clamp(car.zeroToSixty, 2.6, 5.0);
+      const accelFromZero = lerp(6.5, 3.2, (z - 2.6) / (5.0 - 2.6)); // lower time => higher accel
+
+      // bhp helps acceleration, diminishing returns
+      const bhpNorm = clamp(car.bhp, 300, 800);
+      const bhpBoost = 1 + ((bhpNorm - 300) / 500) * 0.55; // up to +55%
+
+      const accel = accelFromZero * bhpBoost; // m/s^2-ish
+
+      // handling affects corner speed retention:
+      // handling 60..98 => retention 0.70..0.94
+      const h = clamp(car.handling, 40, 100);
+      const cornerRetention = lerp(0.62, 0.95, (h - 40) / 60);
+
+      // stability reduces chaos penalty
+      const stability = lerp(0.75, 0.98, (h - 40) / 60);
+
+      return { top, accel, cornerRetention, stability };
+    }
+
+    function buildRacers(){
+      const all = [...state.p1, ...state.p2];
+      const racers = all.map((car, idx) => {
+        const perf = computeCarPerformance(car);
+
+        return {
+          // identity
+          car,
+          idx,
+          team: idx < PICKS_PER_PLAYER ? 1 : 2,
+
+          // sim
+          v: 0,                 // m/s
+          distance: 0,          // meters traveled
+          lap: 0,
+          lapTimes: [],
+          lapStartDist: 0,
+          finished: false,
+
+          // dynamics
+          perf,
+          wear: 0,              // 0..1
+          inPit: false,
+          pitTimeLeft: 0,       // ms
+          pitCount: 0,
+
+          // chaos event
+          eventTimeLeft: 0,     // ms
+          eventCount: 0,
+
+          // drawing lane offset (slight separation)
+          laneOffset: (idx % 2 === 0 ? -1 : 1) * (10 + (idx * 2)),
+
+          // photo cache
+          sprite: state.images.get(car.img) || null
+        };
+      });
+
+      return racers;
+    }
+
+    function tuneLapsTarget(racers){
+      // We want the race to feel like ~2 minutes and have multiple laps.
+      // Estimate typical lap time from a reference car.
+      // We'll simulate an approximate lap time using average speed heuristics.
+      const t = state.track;
+      const lapMeters = t.trackMeters;
+
+      // pick a mid car
+      const r = racers[Math.floor(racers.length / 2)];
+      const top = r.perf.top;
+
+      // assume average speed is 70% of top, reduced by corners
+      const avgCornerFactor = 0.85 * r.perf.cornerRetention;
+      const avg = top * 0.70 * avgCornerFactor;
+
+      const lapTime = lapMeters / Math.max(1, avg); // seconds
+      const raceSec = state.raceDurationMs / 1000;
+
+      const laps = clamp(Math.round(raceSec / lapTime), 5, 12);
+      return laps;
+    }
+
+    function startRace(){
+      if (!draftComplete()) return;
+      if (state.racing) return;
+
+      state.track = buildTrack();
+
+      // Preload images; then start
+      preloadAllImages().then(() => {
+        state.racers = buildRacers();
+        state.lapsTarget = tuneLapsTarget(state.racers);
+
+        state.racing = true;
+        state.raceStartMs = performance.now();
+        state.lastFrameMs = state.raceStartMs;
+        state.simTimeMs = 0;
+        state.results = null;
+
+        setPillHtml(el.pillStatus, "Status", "Racing");
+        el.overlay.classList.add("hidden");
+
+        el.resultsArea.innerHTML = `<div class="small">Race in progress...</div>`;
+        requestAnimationFrame(frame);
+      });
+    }
+
+    function endRace(){
+      state.racing = false;
+
+      // sort by distance desc
+      const sorted = state.racers.slice().sort((a,b) => b.distance - a.distance);
+
+      // build results table
+      let html = `<table>
+        <thead>
+          <tr>
+            <th class="pos">#</th>
+            <th>Car</th>
+            <th>Team</th>
+            <th>Distance</th>
+            <th>Laps</th>
+            <th>Pits</th>
+            <th>Events</th>
+            <th>Best Lap</th>
+          </tr>
+        </thead>
+        <tbody>
+      `;
+
+      for (let i=0; i<sorted.length; i++){
+        const r = sorted[i];
+        const bestLap = r.lapTimes.length
+          ? Math.min(...r.lapTimes)
+          : null;
+
+        html += `
+          <tr>
+            <td class="pos">${i+1}</td>
+            <td><b>${r.car.name}</b> <span class="muted">(${r.car.cls})</span></td>
+            <td>Player ${r.team}</td>
+            <td>${(r.distance/1000).toFixed(2)} km</td>
+            <td>${r.lap}</td>
+            <td>${r.pitCount}</td>
+            <td>${r.eventCount}</td>
+            <td>${bestLap ? formatTime(bestLap) : "—"}</td>
+          </tr>
+        `;
+      }
+
+      html += `</tbody></table>`;
+
+      el.resultsArea.innerHTML = html;
+
+      setPillHtml(el.pillStatus, "Status", "Finished");
+      el.overlay.classList.remove("hidden");
+      el.overlay.querySelector(".t").textContent = `Winner: ${sorted[0].car.name}`;
+      el.overlay.querySelector(".s").innerHTML =
+        `Player ${sorted[0].team} wins. Press <b>Reset</b> to draft again.`;
+    }
+
+    function drawStaticTrack(){
+      state.track = buildTrack();
+      drawScene(0);
+    }
+
+    /* ==========================================================
+      SIM STEP
+    =========================================================== */
+
+    function stepRacer(r, dtMs){
+      const dt = dtMs / 1000;
+
+      const t = state.track;
+      const lapMeters = t.trackMeters;
+
+      // Compute progress along track
+      const s = (r.distance / lapMeters) % 1;
+
+      // Determine segment type
+      const corner = isCorner(s);
+
+      // Tire wear (optional)
+      if (state.pit){
+        const wearRate = corner ? 0.00018 : 0.00011; // per ms
+        r.wear = clamp(r.wear + wearRate * dtMs, 0, 1);
+      } else {
+        r.wear = 0;
+      }
+
+      // Pit logic (optional)
+      if (state.pit){
+        // If wear high, take a pit stop once per ~2 laps
+        const shouldPit = (r.wear > 0.85) && !r.inPit && (r.pitTimeLeft <= 0);
+        if (shouldPit){
+          // Enter pit on a specific segment (top straight near start)
+          if (s < 0.08){
+            r.inPit = true;
+            r.pitTimeLeft = 5500 + randInt(0, 1200); // 5.5-6.7s
+            r.pitCount++;
+          }
+        }
+      }
+
+      if (r.inPit){
+        r.pitTimeLeft -= dtMs;
+        // Pit speed is slow crawl; car still moves slightly
+        r.v = Math.max(6, r.v * 0.85);
+        r.distance += r.v * dt;
+
+        if (r.pitTimeLeft <= 0){
+          r.inPit = false;
+          r.wear = 0.15; // new tires not perfect instantly
+        }
+
+        return;
+      }
+
+      // Chaos events (optional)
+      if (state.chaos){
+        if (r.eventTimeLeft > 0){
+          r.eventTimeLeft -= dtMs;
+          // Apply temporary slowdown
+          const slow = 0.65 + (1 - r.perf.stability) * 0.25;
+          r.v *= slow;
+        } else {
+          // Chance of a minor error, more likely in corners and with low handling
+          const baseChance = corner ? 0.0008 : 0.00025; // per second-ish
+          const handlingPenalty = lerp(1.8, 0.8, r.perf.stability); // lower stability => higher
+          const chance = baseChance * handlingPenalty * dt;
+          if (Math.random() < chance){
+            r.eventTimeLeft = 900 + randInt(0, 900); // 0.9-1.8s
+            r.eventCount++;
+          }
+        }
+      }
+
+      // Slipstream: if close behind another racer on straight, small speed boost
+      let slip = 1.0;
+      if (!corner){
+        for (const other of state.racers){
+          if (other === r) continue;
+
+          const dBehind = other.distance - r.distance;
+          // r behind other if dBehind > 0 and small
+          if (dBehind > 0 && dBehind < 35){
+            slip = 1.04; // +4% on straight if in range
+            break;
+          }
+        }
+      }
+
+      // Corner grip factor: handling improves corner retention
+      const cornerFactor = corner ? r.perf.cornerRetention : 1.0;
+
+      // Wear penalty: worn tires reduce cornerFactor and accel slightly
+      const wearPenalty = state.pit ? lerp(1.0, 0.80, r.wear) : 1.0;
+      const wearCorner = state.pit ? lerp(1.0, 0.75, r.wear) : 1.0;
+
+      // Compute target top speed by segment
+      const vCap = r.perf.top * cornerFactor * wearCorner;
+
+      // Acceleration: stronger at low speeds, weaker near cap
+      const accelBase = r.perf.accel * wearPenalty;
+      const accelCurve = clamp(1 - (r.v / Math.max(1, vCap)), 0.08, 1.0);
+      const a = accelBase * accelCurve * slip;
+
+      // Update v and distance
+      r.v = clamp(r.v + a * dt, 0, vCap);
+      r.distance += r.v * dt;
+
+      // Lap counting
+      const newLap = Math.floor(r.distance / lapMeters);
+      if (newLap > r.lap){
+        // record lap time
+        const lapTime = state.simTimeMs - (r.lapTimes.reduce((acc,ms)=>acc+ms,0));
+        if (lapTime > 0 && lapTime < 600000){
+          r.lapTimes.push(lapTime);
+        }
+        r.lap = newLap;
+      }
+    }
+
+    function stepAll(dtMs){
+      // Step all racers
+      for (const r of state.racers){
+        stepRacer(r, dtMs);
+      }
+    }
+
+    /* ==========================================================
+      DRAWING
+    =========================================================== */
+
+    function drawTrack(t){
+      // Background
+      ctx.clearRect(0,0,t.W,t.H);
+
+      // subtle grid
+      ctx.save();
+      ctx.globalAlpha = 0.12;
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 1;
+      for (let x=0; x<t.W; x+=40){
+        ctx.beginPath();
+        ctx.moveTo(x,0);
+        ctx.lineTo(x,t.H);
+        ctx.stroke();
+      }
+      for (let y=0; y<t.H; y+=40){
+        ctx.beginPath();
+        ctx.moveTo(0,y);
+        ctx.lineTo(t.W,y);
+        ctx.stroke();
+      }
+      ctx.restore();
+
+      // Asphalt oval
+      ctx.save();
+      ctx.fillStyle = "rgba(0,0,0,0.35)";
+      ctx.strokeStyle = "rgba(255,255,255,0.12)";
+      ctx.lineWidth = 18;
+      ctx.lineCap = "round";
+
+      const { cxL, cxR, cy, radius } = t;
+
+      ctx.beginPath();
+      // top straight
+      ctx.moveTo(cxL, cy - radius);
+      ctx.lineTo(cxR, cy - radius);
+      // right arc
+      ctx.arc(cxR, cy, radius, -Math.PI/2, Math.PI/2);
+      // bottom straight
+      ctx.lineTo(cxL, cy + radius);
+      // left arc
+      ctx.arc(cxL, cy, radius, Math.PI/2, -Math.PI/2);
+      ctx.closePath();
+
+      ctx.stroke();
+
+      // inner line
+      ctx.strokeStyle = "rgba(255,255,255,0.10)";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      ctx.restore();
+
+      // Start/finish line
+      ctx.save();
+      const start = trackPoint(0.02);
+      ctx.strokeStyle = "rgba(255,255,255,0.85)";
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(start.x - 18, start.y - 24);
+      ctx.lineTo(start.x + 18, start.y + 24);
+      ctx.stroke();
+      ctx.restore();
+
+      // Labels
+      ctx.save();
+      ctx.fillStyle = "rgba(255,255,255,0.65)";
+      ctx.font = "700 14px ui-sans-serif, system-ui";
+      ctx.fillText("START / FINISH", start.x + 18, start.y - 18);
+      ctx.restore();
+    }
+
+    function drawRacer(r, t){
+      const lapMeters = t.trackMeters;
+      const s = (r.distance / lapMeters) % 1;
+      const p = trackPoint(s);
+
+      // lane offset: perpendicular to heading
+      const off = r.laneOffset;
+      const nx = Math.cos(p.heading + Math.PI/2);
+      const ny = Math.sin(p.heading + Math.PI/2);
+      const x = p.x + nx * off;
+      const y = p.y + ny * off;
+
+      // draw sprite
+      const img = r.sprite || state.images.get(r.car.img);
+
+      // fallback if missing
+      const w = 52;
+      const h = 28;
+
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(p.heading);
+
+      // shadow
+      ctx.globalAlpha = 0.25;
+      ctx.fillStyle = "#000";
+      ctx.beginPath();
+      ctx.ellipse(0, 10, w*0.45, h*0.32, 0, 0, Math.PI*2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+
+      if (img){
+        ctx.drawImage(img, -w/2, -h/2, w, h);
+      } else {
+        // placeholder
+        ctx.fillStyle = "rgba(255,255,255,0.85)";
+        ctx.fillRect(-w/2, -h/2, w, h);
+      }
+
+      // team marker
+      ctx.globalAlpha = 0.9;
+      ctx.fillStyle = r.team === 1 ? "rgba(96,165,250,0.95)" : "rgba(74,222,128,0.95)";
+      ctx.beginPath();
+      ctx.arc(-w/2 + 8, -h/2 + 8, 4, 0, Math.PI*2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+
+      ctx.restore();
+
+      // telemetry label
+      ctx.save();
+      ctx.fillStyle = "rgba(255,255,255,0.78)";
+      ctx.font = "700 12px ui-sans-serif, system-ui";
+      ctx.fillText(r.car.name, x + 18, y - 14);
+
+      // small tire wear bar
+      if (state.pit){
+        ctx.fillStyle = "rgba(255,255,255,0.20)";
+        ctx.fillRect(x + 18, y - 10, 50, 6);
+        ctx.fillStyle = r.wear < 0.5 ? "rgba(74,222,128,0.85)"
+                   : r.wear < 0.8 ? "rgba(251,191,36,0.85)"
+                   : "rgba(251,113,133,0.85)";
+        ctx.fillRect(x + 18, y - 10, 50 * (1 - r.wear), 6);
+      }
+
+      // pit indicator
+      if (r.inPit){
+        ctx.fillStyle = "rgba(251,191,36,0.90)";
+        ctx.fillText("PIT", x + 18, y + 18);
+      }
+
+      // chaos indicator
+      if (state.chaos && r.eventTimeLeft > 0){
+        ctx.fillStyle = "rgba(251,113,133,0.90)";
+        ctx.fillText("⚠", x + 18, y + 32);
+      }
+
+      ctx.restore();
+    }
+
+    function drawLeaderboard(t){
+      const sorted = state.racers.slice().sort((a,b)=>b.distance-a.distance);
+
+      const x = 18;
+      const y = 18;
+      const w = 320;
+      const rowH = 22;
+
+      ctx.save();
+      ctx.globalAlpha = 0.90;
+      ctx.fillStyle = "rgba(0,0,0,0.30)";
+      ctx.strokeStyle = "rgba(255,255,255,0.12)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(x, y, w, 20 + sorted.length * rowH + 12, 14);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+
+      ctx.save();
+      ctx.fillStyle = "rgba(255,255,255,0.85)";
+      ctx.font = "900 13px ui-sans-serif, system-ui";
+      ctx.fillText("LIVE LEADERBOARD", x + 12, y + 18);
+
+      ctx.font = "700 12px ui-sans-serif, system-ui";
+      ctx.fillStyle = "rgba(255,255,255,0.80)";
+
+      const lapMeters = t.trackMeters;
+
+      for (let i=0;i<sorted.length;i++){
+        const r = sorted[i];
+        const lap = Math.floor(r.distance / lapMeters);
+        const distKm = (r.distance / 1000).toFixed(2);
+
+        const yy = y + 38 + i * rowH;
+
+        // marker
+        ctx.fillStyle = r.team===1 ? "rgba(96,165,250,0.95)" : "rgba(74,222,128,0.95)";
+        ctx.fillRect(x + 12, yy - 10, 6, 6);
+
+        ctx.fillStyle = "rgba(255,255,255,0.85)";
+        ctx.fillText(`${i+1}. ${r.car.name}`, x + 24, yy - 4);
+        ctx.fillStyle = "rgba(255,255,255,0.65)";
+        ctx.fillText(`Lap ${lap} • ${distKm}km`, x + 190, yy - 4);
+      }
+
+      ctx.restore();
+    }
+
+    // Add CanvasRenderingContext2D.roundRect if missing (older browsers)
+    if (!CanvasRenderingContext2D.prototype.roundRect){
+      CanvasRenderingContext2D.prototype.roundRect = function(x,y,w,h,r){
+        const rr = Math.min(r, w/2, h/2);
+        this.beginPath();
+        this.moveTo(x+rr, y);
+        this.arcTo(x+w, y, x+w, y+h, rr);
+        this.arcTo(x+w, y+h, x, y+h, rr);
+        this.arcTo(x, y+h, x, y, rr);
+        this.arcTo(x, y, x+w, y, rr);
+        this.closePath();
+        return this;
+      };
+    }
+
+    function drawScene(){
+      const t = state.track;
+      if (!t) return;
+
+      drawTrack(t);
+
+      // racers
+      if (state.racers && state.racers.length){
+        // draw in distance order for nicer overlap
+        const drawOrder = state.racers.slice().sort((a,b)=>a.distance-b.distance);
+        for (const r of drawOrder){
+          drawRacer(r, t);
+        }
+        drawLeaderboard(t);
+      } else {
+        // draw a subtle hint if no racers
+        ctx.save();
+        ctx.fillStyle = "rgba(255,255,255,0.55)";
+        ctx.font = "900 18px ui-sans-serif, system-ui";
+        ctx.fillText("Draft cars to begin", 30, t.H - 30);
+        ctx.restore();
+      }
+    }
+
+    /* ==========================================================
+      MAIN LOOP
+    =========================================================== */
+
+    function frame(now){
+      if (!state.racing) return;
+
+      const dtMs = clamp(now - state.lastFrameMs, 8, 40);
+      state.lastFrameMs = now;
+
+      // Advance sim time at 1x real time
+      state.simTimeMs += dtMs;
+
+      // Step sim
+      stepAll(dtMs);
+
+      // Update UI pills
+      const elapsed = state.simTimeMs;
+      setPillHtml(el.pillTime, "Time", `${formatTime(elapsed)} / ${formatTime(state.raceDurationMs)}`);
+
+      // Show "best lap" or lap target
+      const lead = state.racers.slice().sort((a,b)=>b.distance-a.distance)[0];
+      setPillHtml(el.pillLap, "Lap", `Lead: ${lead.lap}/${state.lapsTarget}`);
+
+      // Draw
+      drawScene();
+
+      // End conditions:
+      // 1) Time reaches duration
+      // 2) Leader reaches lapsTarget (optional extra)
+      const leaderLap = lead.lap;
+
+      if (elapsed >= state.raceDurationMs || leaderLap >= state.lapsTarget){
+        endRace();
+        return;
+      }
+
+      requestAnimationFrame(frame);
+    }
+
+    /* ==========================================================
+      EVENT WIRES
+    =========================================================== */
+
+    el.btnReset.addEventListener("click", resetGame);
+    el.btnDemo.addEventListener("click", autoPickDemo);
+    el.btnStart.addEventListener("click", startRace);
+
+    el.searchInput.addEventListener("input", renderCarGrid);
+    el.toggleSnake.addEventListener("change", () => { renderAll(); });
+    el.toggleChaos.addEventListener("change", () => { renderAll(); });
+    el.togglePit.addEventListener("change", () => { renderAll(); });
+
+    /* ==========================================================
+      INIT
+    =========================================================== */
+
+    // Start in draft mode
+    (async function init(){
+      state.track = buildTrack();
+      await preloadAllImages();
+      resetGame();
+    })();
+
+  </script>
+</body>
+  </html>
