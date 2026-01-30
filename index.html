@@ -1565,17 +1565,33 @@
 
   const vmax = perf.vmax;
 
-  // Track harshness (very technical track)
-  const trackFactor = lerp(1.0, 0.33, severity);
+  // Track harshness (technical circuit)
+  const trackFactor = lerp(1.0, 0.36, severity);
 
-  // Handling nonlinear dominance
+  // Handling dominance (strong curve)
   const h = clamp(perf.handlingFactor, 0.25, 0.95);
-  const handlingCurve = Math.pow(h, 2.6);
+  const handlingCurve = Math.pow(h, 2.3);
 
-  const cap = vmax * trackFactor * handlingCurve;
+  // Raw cap
+  let cap = vmax * trackFactor * handlingCurve;
+
+  // -------------------------
+  // REALISTIC CORNER FLOOR
+  // -------------------------
+  // Best cars can always carry ~60mph in sharp corners
+  const minCornerMs = 27; // ~60 mph
+
+  // Handling scales how close you get to this floor
+  const floorBlend = clamp((h - 0.35) / 0.6, 0, 1);
+
+  const floorSpeed = lerp(8, minCornerMs, floorBlend); 
+  // bad handling ~8 m/s (~18mph)
+  // great handling ~27 m/s (~60mph)
+
+  cap = Math.max(cap, floorSpeed);
 
   return Math.min(cap, vmax);
-}
+    }
 
     /* ============================================================
       SECTION 11 • RACE SIM
