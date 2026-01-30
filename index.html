@@ -1540,55 +1540,81 @@
     function accelAtSpeed(perf, v){
 
   const vmax = perf.vmax;
-  const v60 = perf.v60;
+  const v60  = perf.v60;
 
-  const base = perf.a0 * 1.35;
+  // Strong low-speed punch from 0–60 time
+  const baseAccel = perf.a0 * 1.15;
 
-  const tractionLimit = 12.2;
+  // Realistic traction limit (~1.15g peak)
+  const tractionLimit = 11.3;
 
   let a;
 
+  // =================================================
+  // BELOW 60 MPH (launch + exits = VERY important)
+  // =================================================
   if(v < v60){
-    a = Math.min(base, tractionLimit);
-  } else {
 
-    const x = v / vmax;
+    // Slight taper as speed rises
+    const t = v / v60;
 
-    a = base * Math.pow(1 - x, 2.2);
+    a = baseAccel * (1 - 0.15*t);
 
-    a = Math.max(a, 0.08);
+    a = Math.min(a, tractionLimit);
+  }
+
+  // =================================================
+  // ABOVE 60 MPH (drag-limited curve)
+  // =================================================
+  else {
+
+    const x = clamp(v / vmax, 0, 1);
+
+    // Strong decay toward vmax
+    a = baseAccel * 0.55 * Math.pow(1 - x, 2.4);
+
+    // Mid-range bhp influence
+    const bhpBoost = perf.bhpBoost || 1;
+
+    const midPull = Math.exp(-Math.pow((x - 0.55)/0.22, 2));
+
+    a *= (1 + (bhpBoost - 1) * midPull);
+
+    // Never totally zero (tiny push)
+    a = Math.max(a, 0.12);
   }
 
   return a;
-}
+    }
     function cornerCap(perf, severity){
+function cornerCap(perf, severity){
 
   const vmax = perf.vmax;
 
-  // Track harshness (technical circuit)
-  const trackFactor = lerp(1.0, 0.36, severity);
-
-  // Handling dominance (strong curve)
+  // Handling dominance (very strong)
   const h = clamp(perf.handlingFactor, 0.25, 0.95);
-  const handlingCurve = Math.pow(h, 2.3);
 
-  // Raw cap
-  let cap = vmax * trackFactor * handlingCurve;
+  // Nürburgring curvature harshness
+  const trackFactor = lerp(1.0, 0.30, severity);
 
-  // -------------------------
-  // REALISTIC CORNER FLOOR
-  // -------------------------
-  // Best cars can always carry ~60mph in sharp corners
-  const minCornerMs = 27; // ~60 mph
+  // Handling curve (VERY impactful)
+  const handlingPower = Math.pow(h, 3.1);
 
-  // Handling scales how close you get to this floor
-  const floorBlend = clamp((h - 0.35) / 0.6, 0, 1);
+  let cap = vmax * trackFactor * handlingPower;
 
-  const floorSpeed = lerp(8, minCornerMs, floorBlend); 
-  // bad handling ~8 m/s (~18mph)
-  // great handling ~27 m/s (~60mph)
+  // --- Realistic minimum speeds ---
+  // Maps roughly to real life
 
-  cap = Math.max(cap, floorSpeed);
+  const minBad = 6;     // ~13 mph
+  const minGreat = 27;  // ~60 mph
+
+  const floor = lerp(
+    minBad,
+    minGreat,
+    Math.pow((h - 0.25) / 0.7, 1.8)
+  );
+
+  cap = Math.max(cap, floor);
 
   return Math.min(cap, vmax);
     }
@@ -1680,14 +1706,14 @@
   const dt = dtMs / 1000;
   const track = state.track;
 
-  // Look ahead to anticipate braking zones
-  const lookAhead = clamp(r.v * 1.0, 25, 85);
+  // Look ahead (braking anticipation)
+  const lookAhead = clamp(r.v * 1.15, 30, 95);
 
-  const here = track.sampleAtDistMeters(r.distance);
+  const here  = track.sampleAtDistMeters(r.distance);
   const ahead = track.sampleAtDistMeters(r.distance + lookAhead);
 
   const sev = clamp(
-    lerp(here.severity, ahead.severity, 0.7),
+    lerp(here.severity, ahead.severity, 0.75),
     0,
     1
   );
@@ -1695,64 +1721,80 @@
   const vmax = r.perf.vmax;
   let vcap = cornerCap(r.perf, sev);
 
-  // -------------------------------------------------
-  // HARD CORNER SPEED FLOOR BASED ON HANDLING
-  // -------------------------------------------------
+  // =====================================================
+  // HANDLING-BASED MINIMUM CORNER SPEED (REALISTIC)
+  // =====================================================
 
   const h = clamp(r.perf.handlingFactor, 0.25, 0.95);
 
-  // Mapping:
-  // low handling → ~10 mph
-  // high handling → ~60 mph
+  // Maps handling -> corner floor speed
+  // bad ≈ 12 mph | great ≈ 60 mph
 
   const minCornerMs = lerp(
-    4.5,    // ~10 mph bad cars
-    27,     // ~60 mph great cars
-    Math.pow((h - 0.25) / 0.7, 1.5)
+    5.5,     // ~12 mph bad handling
+    27.0,    // ~60 mph elite handling (919 Evo)
+    Math.pow((h - 0.25) / 0.7, 1.8)
   );
 
   vcap = Math.max(vcap, minCornerMs);
 
-  // -------------------------------------------------
-  // BRAKING LOGIC (cannot go below vcap now)
-  // -------------------------------------------------
+  // =====================================================
+  // BRAKING (HANDLING DOMINANT)
+  // =====================================================
 
-  if (r.v > vcap){
+  if(r.v > vcap){
 
-    // progressive braking
-    const brakeStrength = lerp(6, 14, sev);
+    // High handling brakes late & lightly
+    // Low handling brakes early & heavily
 
-    r.v -= brakeStrength * dt;
+    const baseBrake = lerp(16, 6, h);      // handling influence
+    const cornerAmp = lerp(1.0, 1.7, sev); // corner severity influence
 
-    // DO NOT allow speed to fall below corner cap
+    const brake = baseBrake * cornerAmp;
+
+    r.v -= brake * dt;
+
     if(r.v < vcap) r.v = vcap;
 
   } 
   else {
 
-    // acceleration
+    // =====================================================
+    // ACCELERATION (EXIT POWER)
+    // =====================================================
+
     const accel = accelAtSpeed(r.perf, r.v);
-    r.v += accel * dt;
+
+    // slight boost exiting corners for good handling cars
+    const exitBoost = lerp(0.9, 1.15, h);
+
+    r.v += accel * exitBoost * dt;
 
     if(r.v > vcap) r.v = vcap;
   }
 
-  // -------------------------------------------------
-  // MICRO VARIANCE (small, never huge slowdowns)
-  // -------------------------------------------------
+  // =====================================================
+  // MICRO CHAOS (tiny realism noise)
+  // =====================================================
 
   if(state.microChaos){
-    const jitter = (Math.random()-0.5) * sev * 0.01;
+    const jitter = (Math.random()-0.5) * sev * 0.008;
     r.v *= (1 + jitter);
   }
 
-  // Clamp to max
+  // Clamp
   r.v = clamp(r.v, 0, vmax);
 
-  // Move forward
+  // =====================================================
+  // MOVE
+  // =====================================================
+
   r.distance += r.v * dt;
 
-  // Lap tracking
+  // =====================================================
+  // LAP TRACKING
+  // =====================================================
+
   const lapMeters = track.lapMeters;
   const newLap = Math.floor(r.distance / lapMeters);
 
