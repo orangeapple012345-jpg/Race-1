@@ -1,54 +1,79 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <!-- ==========================================================
-    Race-1 • Draft & Race (Single-file, GitHub Pages friendly)
-    - 500+ lines, in-depth draft + racing sim
-    - Images expected in /cars/
-    - No frameworks required
-  =========================================================== -->
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Race-1 • Draft & Race</title>
+  <!--
+    ============================================================
+      Draft Circuit Racing • Single-file Game (1000+ lines)
+      - GitHub Pages friendly: just index.html + /cars images
+      - Draft: random 6-card pack each pick
+      - 2 players, 4 cars each
+      - Race: advanced circuit (many corners/straights)
+      - Realistic-ish acceleration: 0-60 + drag-limited curve to top speed
+      - Handling affects corner speed caps based on curvature severity
+      - Live leaderboard + lap times
+      - No pit stops / no weather (per request)
+    ============================================================
+  -->
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Draft Circuit Racing</title>
 
   <style>
-    /* ==========================================================
+    /* ============================================================
       THEME + RESET
-    =========================================================== */
+    ============================================================ */
     :root{
-      --bg: #0b0f17;
-      --panel: rgba(255,255,255,0.04);
-      --panel2: rgba(255,255,255,0.06);
+      --bg: #0b1020;
+      --panel: rgba(255,255,255,0.045);
+      --panel2: rgba(255,255,255,0.065);
       --border: rgba(255,255,255,0.10);
-      --border2: rgba(255,255,255,0.14);
-      --text: #e8eef8;
-      --muted: #a9b7ce;
+      --border2: rgba(255,255,255,0.15);
+      --text: #eaf0ff;
+      --muted: #a9b6d2;
+      --muted2:#7f90b4;
+
+      --p1: #60a5fa;
+      --p2: #4ade80;
+
       --good: #4ade80;
-      --blue: #60a5fa;
       --warn: #fbbf24;
-      --bad: #fb7185;
-      --shadow: 0 18px 40px rgba(0,0,0,0.45);
-      --shadow2: 0 10px 22px rgba(0,0,0,0.35);
+      --bad:  #fb7185;
+
+      --shadow: 0 18px 45px rgba(0,0,0,0.45);
+      --shadow2: 0 10px 24px rgba(0,0,0,0.35);
+
       --radius: 18px;
       --radius2: 14px;
-      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      --radius3: 12px;
+
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
       --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+
+      --track-asphalt: rgba(0,0,0,0.42);
+      --track-line: rgba(255,255,255,0.12);
+      --track-line2: rgba(255,255,255,0.06);
+      --grid: rgba(255,255,255,0.06);
+
+      --btn: rgba(255,255,255,0.07);
+      --btn2: rgba(255,255,255,0.11);
     }
 
-    *{ box-sizing:border-box; }
+    *{ box-sizing: border-box; }
     html,body{ height:100%; }
     body{
       margin:0;
       font-family: var(--sans);
-      color: var(--text);
       background:
         radial-gradient(1100px 700px at 10% -10%, rgba(96,165,250,0.18), transparent 55%),
         radial-gradient(1000px 700px at 90% 0%, rgba(74,222,128,0.12), transparent 55%),
         radial-gradient(900px 650px at 50% 115%, rgba(251,191,36,0.10), transparent 55%),
         var(--bg);
+      color: var(--text);
     }
 
-    a{ color:inherit; }
+    a{ color: inherit; }
+
     code{
       font-family: var(--mono);
       background: rgba(255,255,255,0.07);
@@ -57,103 +82,115 @@
       border-radius: 10px;
     }
 
-    /* ==========================================================
-      LAYOUT
-    =========================================================== */
+    /* ============================================================
+      HEADER
+    ============================================================ */
     .header{
       position: sticky;
       top: 0;
-      z-index: 10;
+      z-index: 50;
       display:flex;
       align-items:center;
       justify-content: space-between;
       gap: 14px;
       padding: 14px 18px;
-      background: rgba(8,12,19,0.75);
+      background: rgba(8, 12, 20, 0.75);
       backdrop-filter: blur(10px);
       border-bottom: 1px solid var(--border);
     }
+
     .brand{
       display:flex;
       align-items:center;
       gap: 12px;
-      min-width: 220px;
+      min-width: 240px;
     }
+
     .logo{
-      width: 46px;
-      height: 46px;
+      width: 48px;
+      height: 48px;
+      border-radius: 16px;
       display:grid;
       place-items:center;
-      border-radius: 16px;
       background: linear-gradient(135deg, rgba(96,165,250,0.18), rgba(74,222,128,0.12));
       border: 1px solid var(--border);
       box-shadow: var(--shadow2);
       font-size: 20px;
+      user-select:none;
     }
-    .brand h1{
+
+    .brand-title{
       margin:0;
       font-size: 1.1rem;
       letter-spacing: -0.02em;
+      font-weight: 900;
+      line-height: 1.05;
     }
-    .brand .sub{
+    .brand-sub{
       color: var(--muted);
       font-size: 0.88rem;
-      margin-top: 2px;
+      margin-top: 3px;
+      line-height: 1.1;
     }
 
-    .header-actions{
+    .actions{
       display:flex;
       gap: 10px;
-      align-items:center;
       flex-wrap: wrap;
       justify-content: flex-end;
+      align-items:center;
     }
 
     .btn{
       cursor:pointer;
+      user-select:none;
       border: 1px solid var(--border2);
-      background: rgba(255,255,255,0.06);
+      background: var(--btn);
       color: var(--text);
       border-radius: 14px;
       padding: 10px 12px;
-      font-weight: 750;
+      font-weight: 850;
       letter-spacing: -0.01em;
-      transition: transform 0.08s ease, background 0.15s ease, opacity 0.15s ease;
-      user-select: none;
+      transition: transform 0.08s ease, background 0.15s ease, opacity 0.15s ease, border-color 0.15s ease;
     }
-    .btn:hover{ transform: translateY(-1px); background: rgba(255,255,255,0.09); }
+
+    .btn:hover{ transform: translateY(-1px); background: var(--btn2); }
     .btn:active{ transform: translateY(0px); }
-    .btn:disabled{ opacity: 0.5; cursor: not-allowed; transform:none; }
+    .btn:disabled{ opacity: 0.50; cursor: not-allowed; transform:none; }
 
     .btn-primary{
-      border-color: rgba(74,222,128,0.35);
       background: rgba(74,222,128,0.14);
+      border-color: rgba(74,222,128,0.35);
     }
     .btn-primary:hover{ background: rgba(74,222,128,0.18); }
 
     .btn-secondary{
-      border-color: rgba(96,165,250,0.38);
       background: rgba(96,165,250,0.12);
+      border-color: rgba(96,165,250,0.38);
     }
     .btn-secondary:hover{ background: rgba(96,165,250,0.16); }
 
     .btn-danger{
-      border-color: rgba(251,113,133,0.35);
       background: rgba(251,113,133,0.12);
+      border-color: rgba(251,113,133,0.35);
     }
     .btn-danger:hover{ background: rgba(251,113,133,0.16); }
 
+    /* ============================================================
+      LAYOUT
+    ============================================================ */
     .wrap{
-      max-width: 1400px;
+      max-width: 1450px;
       margin: 0 auto;
       padding: 18px;
     }
 
     .grid{
       display:grid;
-      grid-template-columns: 1.1fr 0.9fr;
+      grid-template-columns: 1.05fr 0.95fr;
       gap: 16px;
     }
+
     @media (max-width: 1100px){
       .grid{ grid-template-columns: 1fr; }
     }
@@ -161,8 +198,8 @@
     .panel{
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      background: linear-gradient(180deg, rgba(255,255,255,0.05), transparent 50%),
-                  rgba(16,24,39,0.50);
+      background: linear-gradient(180deg, rgba(255,255,255,0.055), transparent 52%),
+                  rgba(16, 24, 39, 0.52);
       box-shadow: var(--shadow);
       overflow:hidden;
     }
@@ -174,10 +211,14 @@
       align-items:flex-start;
       justify-content: space-between;
       gap: 12px;
+      flex-wrap: wrap;
     }
+
     .panel-h h2{
       margin:0;
       font-size: 1.1rem;
+      font-weight: 900;
+      letter-spacing: -0.02em;
     }
 
     .pills{
@@ -185,21 +226,23 @@
       gap: 8px;
       flex-wrap: wrap;
       justify-content: flex-end;
+      align-items:center;
     }
+
     .pill{
       border: 1px solid var(--border);
       background: rgba(255,255,255,0.05);
-      border-radius: 999px;
       padding: 6px 10px;
+      border-radius: 999px;
       font-size: 0.86rem;
       color: var(--muted);
       white-space: nowrap;
     }
     .pill strong{ color: var(--text); }
 
-    /* ==========================================================
-      DRAFT SECTION
-    =========================================================== */
+    /* ============================================================
+      DRAFT UI
+    ============================================================ */
     .draft-top{
       padding: 12px 14px;
       border-bottom: 1px solid var(--border);
@@ -207,7 +250,8 @@
       grid-template-columns: 1fr 1fr;
       gap: 12px;
     }
-    @media (max-width: 700px){
+
+    @media (max-width: 760px){
       .draft-top{ grid-template-columns: 1fr; }
     }
 
@@ -217,19 +261,21 @@
       background: rgba(0,0,0,0.16);
       padding: 10px;
     }
-    .team .title{
+
+    .team-head{
       display:flex;
       align-items:center;
       justify-content: space-between;
       gap: 10px;
       margin-bottom: 8px;
     }
-    .team .title .name{
-      font-weight: 850;
+
+    .team-name{
+      font-weight: 950;
       letter-spacing: -0.02em;
     }
-    .team .title .tag{
-      font-size: 0.85rem;
+    .team-meta{
+      font-size: 0.86rem;
       color: var(--muted);
     }
 
@@ -237,7 +283,7 @@
       display:flex;
       flex-wrap: wrap;
       gap: 8px;
-      min-height: 60px;
+      min-height: 64px;
     }
 
     .chip{
@@ -249,23 +295,28 @@
       padding: 6px 10px;
       background: rgba(255,255,255,0.05);
     }
+
     .chip img{
-      width: 26px;
-      height: 26px;
+      width: 28px;
+      height: 28px;
       border-radius: 999px;
       object-fit: cover;
-      border: 1px solid rgba(255,255,255,0.14);
-    }
-    .chip .cname{
-      font-weight: 800;
-      font-size: 0.88rem;
-    }
-    .chip .cmeta{
-      font-size: 0.75rem;
-      color: var(--muted);
+      border: 1px solid rgba(255,255,255,0.16);
     }
 
-    .draft-controls{
+    .chip .cname{
+      font-weight: 900;
+      font-size: 0.9rem;
+      letter-spacing: -0.01em;
+    }
+
+    .chip .ctag{
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .draft-mid{
       padding: 12px 14px;
       border-bottom: 1px solid var(--border);
       display:flex;
@@ -275,20 +326,28 @@
       flex-wrap: wrap;
     }
 
+    .hint{
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.35;
+      max-width: 700px;
+    }
+
     .toggle{
       display:flex;
       align-items:center;
       gap: 10px;
-      color: var(--muted);
       font-size: 0.92rem;
+      color: var(--muted);
+      user-select:none;
     }
-    .toggle input{ transform: scale(1.2); }
+    .toggle input{ transform: scale(1.15); }
 
-    .pool{
+    .pack{
       padding: 12px 14px 14px 14px;
     }
 
-    .pool-h{
+    .pack-head{
       display:flex;
       align-items:flex-end;
       justify-content: space-between;
@@ -297,10 +356,16 @@
       margin-bottom: 10px;
     }
 
-    .pool-h .hint{
+    .pack-title{
+      font-weight: 950;
+      letter-spacing: -0.02em;
+      font-size: 1.02rem;
+    }
+
+    .pack-sub{
+      font-size: 0.9rem;
       color: var(--muted);
-      font-size: 0.92rem;
-      line-height: 1.3;
+      margin-top: 4px;
     }
 
     .search{
@@ -313,25 +378,26 @@
       padding: 6px 10px;
       min-width: 240px;
     }
+
     .search input{
       width: 100%;
-      border: none;
-      outline:none;
       background: transparent;
+      border: none;
+      outline: none;
       color: var(--text);
       font-size: 0.95rem;
     }
 
-    .car-grid{
+    .grid6{
       display:grid;
       grid-template-columns: repeat(3, minmax(0,1fr));
       gap: 12px;
     }
     @media (max-width: 1100px){
-      .car-grid{ grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .grid6{ grid-template-columns: repeat(2, minmax(0,1fr)); }
     }
     @media (max-width: 650px){
-      .car-grid{ grid-template-columns: 1fr; }
+      .grid6{ grid-template-columns: 1fr; }
     }
 
     .card{
@@ -340,16 +406,21 @@
       background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(0,0,0,0.12));
       overflow:hidden;
       box-shadow: var(--shadow2);
+      min-height: 330px;
       display:flex;
       flex-direction: column;
-      min-height: 330px;
-      transition: transform 0.12s ease, border 0.15s ease, opacity 0.15s ease;
+      transition: transform 0.12s ease, border-color 0.15s ease, opacity 0.15s ease;
     }
-    .card:hover{ transform: translateY(-2px); border-color: rgba(255,255,255,0.20); }
+
+    .card:hover{
+      transform: translateY(-2px);
+      border-color: rgba(255,255,255,0.22);
+    }
+
     .card.disabled{
-      opacity: 0.45;
+      opacity: 0.50;
       pointer-events: none;
-      transform: none;
+      transform:none;
     }
 
     .thumb{
@@ -359,11 +430,12 @@
       background: rgba(255,255,255,0.03);
     }
     .thumb img{
-      width:100%;
-      height:100%;
+      width: 100%;
+      height: 100%;
       object-fit: cover;
       display:block;
     }
+
     .badge{
       position:absolute;
       top: 10px;
@@ -374,28 +446,32 @@
       background: rgba(0,0,0,0.35);
       backdrop-filter: blur(6px);
       font-size: 0.82rem;
+      color: rgba(255,255,255,0.92);
     }
 
-    .card-body{
+    .body{
       padding: 12px;
       display:flex;
       flex-direction: column;
       gap: 10px;
       flex:1;
     }
-    .card-name{
+
+    .name-row{
       display:flex;
       align-items:center;
       justify-content: space-between;
       gap: 10px;
     }
-    .card-name .n{
-      font-weight: 900;
+
+    .car-name{
+      font-weight: 950;
       letter-spacing: -0.02em;
       font-size: 1.03rem;
     }
-    .card-name .cls{
-      font-size: 0.8rem;
+
+    .car-class{
+      font-size: 0.82rem;
       color: var(--muted);
       border: 1px solid var(--border);
       padding: 4px 8px;
@@ -408,16 +484,25 @@
       grid-template-columns: 1fr 1fr;
       gap: 8px;
     }
+
     .stat{
       border: 1px solid var(--border);
       border-radius: 12px;
       background: rgba(255,255,255,0.04);
       padding: 8px;
     }
-    .stat .k{ color: var(--muted); font-size: 0.74rem; }
-    .stat .v{ font-weight: 900; font-size: 1.0rem; }
 
-    .card-foot{
+    .stat .k{
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .stat .v{
+      font-weight: 950;
+      font-size: 1.0rem;
+      letter-spacing: -0.01em;
+    }
+
+    .foot{
       padding: 12px;
       border-top: 1px solid var(--border);
       display:flex;
@@ -428,13 +513,13 @@
 
     .small{
       color: var(--muted);
-      font-size: 0.85rem;
+      font-size: 0.86rem;
       line-height: 1.25;
     }
 
-    /* ==========================================================
-      RACE SECTION
-    =========================================================== */
+    /* ============================================================
+      RACE UI
+    ============================================================ */
     .race-wrap{
       padding: 12px 14px 14px 14px;
     }
@@ -447,11 +532,7 @@
       background: rgba(0,0,0,0.16);
     }
 
-    canvas{
-      display:block;
-      width: 100%;
-      height: auto;
-    }
+    canvas{ display:block; width: 100%; height:auto; }
 
     .overlay{
       position:absolute;
@@ -462,20 +543,21 @@
       background: radial-gradient(900px 500px at 50% 30%, rgba(0,0,0,0.30), rgba(0,0,0,0.55));
     }
     .overlay.hidden{ display:none; }
+
     .overlay-card{
-      pointer-events:none;
       border: 1px solid rgba(255,255,255,0.14);
       background: rgba(0,0,0,0.35);
       border-radius: 18px;
       padding: 14px 16px;
       text-align:center;
-      max-width: 420px;
+      max-width: 460px;
       box-shadow: var(--shadow);
     }
     .overlay-card .t{
       font-weight: 950;
       font-size: 1.15rem;
       margin-bottom: 6px;
+      letter-spacing: -0.02em;
     }
     .overlay-card .s{
       color: var(--muted);
@@ -487,20 +569,31 @@
       padding: 12px 14px 14px 14px;
       border-top: 1px solid var(--border);
       display:grid;
-      grid-template-columns: 1fr;
       gap: 12px;
     }
 
-    .results{
+    .row2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 760px){
+      .row2{ grid-template-columns: 1fr; }
+    }
+
+    .box{
       border: 1px solid var(--border);
       border-radius: var(--radius2);
       background: rgba(0,0,0,0.14);
       padding: 10px;
+      overflow:hidden;
     }
 
-    .results h3{
-      margin: 0 0 10px 0;
+    .box h3{
+      margin:0 0 10px 0;
       font-size: 1.0rem;
+      font-weight: 950;
+      letter-spacing: -0.02em;
     }
 
     table{
@@ -508,16 +601,46 @@
       border-collapse: collapse;
       font-size: 0.92rem;
     }
-    th,td{
+
+    th, td{
       padding: 10px 8px;
       border-bottom: 1px solid rgba(255,255,255,0.08);
       text-align:left;
+      vertical-align: middle;
     }
-    th{ color: var(--muted); font-weight: 800; }
-    tr:last-child td{ border-bottom: none; }
+
+    th{
+      color: var(--muted);
+      font-weight: 900;
+      font-size: 0.86rem;
+      letter-spacing: -0.01em;
+    }
+
+    tr:last-child td{ border-bottom:none; }
+
     .pos{
+      width: 44px;
       font-weight: 950;
-      width: 40px;
+    }
+
+    .teamDot{
+      display:inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+
+    .pill-inline{
+      display:inline-block;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.04);
+      color: var(--muted);
+      font-size: 0.80rem;
+      margin-left: 8px;
     }
 
     .footer{
@@ -530,21 +653,21 @@
 </head>
 
 <body>
-  <!-- ==========================================================
+  <!-- ============================================================
     HEADER
-  =========================================================== -->
+  ============================================================ -->
   <header class="header">
     <div class="brand">
-      <div class="logo">🏁</div>
+      <div class="logo">🏎️</div>
       <div>
-        <h1>Race-1</h1>
-        <div class="sub">Draft 3 cars each, then watch a 2-minute race</div>
+        <div class="brand-title">Draft Circuit Racing</div>
+        <div class="brand-sub">Random 6-car packs • 4 picks each • Advanced track • Live leaderboard</div>
       </div>
     </div>
 
-    <div class="header-actions">
+    <div class="actions">
       <button id="btnReset" class="btn btn-danger" type="button">Reset</button>
-      <button id="btnDemo" class="btn btn-secondary" type="button">Auto-Pick Demo</button>
+      <button id="btnAutoDraft" class="btn btn-secondary" type="button">Auto Draft</button>
       <button id="btnStart" class="btn btn-primary" type="button" disabled>Start Race</button>
     </div>
   </header>
@@ -559,68 +682,63 @@
           <h2>Draft</h2>
           <div class="pills">
             <div class="pill" id="pillTurn">Turn: <strong>Player 1</strong></div>
-            <div class="pill" id="pillPicks">Picks: <strong>0/3 • 0/3</strong></div>
-            <div class="pill" id="pillMode">Mode: <strong>Snake</strong></div>
+            <div class="pill" id="pillPicks">Picks: <strong>0/4 • 0/4</strong></div>
+            <div class="pill" id="pillPack">Pack: <strong>1</strong></div>
           </div>
         </div>
 
         <div class="draft-top">
           <div class="team">
-            <div class="title">
-              <div class="name">Player 1</div>
-              <div class="tag" id="p1Tag">Ready</div>
+            <div class="team-head">
+              <div class="team-name">Player 1</div>
+              <div class="team-meta" id="p1Meta">0 / 4 cars</div>
             </div>
             <div class="chips" id="p1Chips"></div>
           </div>
 
           <div class="team">
-            <div class="title">
-              <div class="name">Player 2</div>
-              <div class="tag" id="p2Tag">Ready</div>
+            <div class="team-head">
+              <div class="team-name">Player 2</div>
+              <div class="team-meta" id="p2Meta">0 / 4 cars</div>
             </div>
             <div class="chips" id="p2Chips"></div>
           </div>
         </div>
 
-        <div class="draft-controls">
-          <div class="toggle">
+        <div class="draft-mid">
+          <div class="hint">
+            Each pick shows <b>6 random cars</b> from your database. Cars already drafted won’t appear again.
+            Add/rename car images in <code>/cars</code> and update the <code>CAR_DB</code> list in this file.
+          </div>
+
+          <div class="toggle" title="If enabled, the game will try to avoid offering extremely unbalanced packs.">
             <label>
-              <input id="toggleSnake" type="checkbox" checked />
-              Snake Draft (1-2-2-1-1-2...)
+              <input id="togglePackBalance" type="checkbox" checked />
+              Balanced Packs
             </label>
           </div>
 
-          <div class="toggle">
+          <div class="toggle" title="Slight randomness in driving line / tiny mistakes.">
             <label>
-              <input id="toggleChaos" type="checkbox" />
-              Chaos Events (small randomness)
-            </label>
-          </div>
-
-          <div class="toggle">
-            <label>
-              <input id="togglePit" type="checkbox" checked />
-              Tire Wear + Pit Stops
+              <input id="toggleMicroChaos" type="checkbox" checked />
+              Micro Variance
             </label>
           </div>
         </div>
 
-        <div class="pool">
-          <div class="pool-h">
+        <div class="pack">
+          <div class="pack-head">
             <div>
-              <div style="font-weight:900; font-size:1.02rem;">Car Pool</div>
-              <div class="hint">
-                Images must exist inside <code>cars/</code>.
-                Click a card to draft it.
-              </div>
+              <div class="pack-title">Current Pack (Pick 1 of 8)</div>
+              <div class="pack-sub" id="packSubtitle">Player 1: choose 1 of the 6 cars below.</div>
             </div>
 
-            <div class="search" title="Filter cars by name">
-              🔎 <input id="searchInput" placeholder="Search cars..." />
+            <div class="search" title="Filter current pack by name/class">
+              🔎 <input id="searchInput" placeholder="Search this pack..." />
             </div>
           </div>
 
-          <div class="car-grid" id="carGrid"></div>
+          <div class="grid6" id="packGrid"></div>
         </div>
       </section>
 
@@ -639,13 +757,14 @@
 
         <div class="race-wrap">
           <div class="canvas-wrap">
-            <canvas id="canvas" width="980" height="520"></canvas>
+            <canvas id="canvas" width="980" height="560"></canvas>
+
             <div class="overlay" id="overlay">
               <div class="overlay-card">
-                <div class="t">Ready to Race</div>
-                <div class="s">
-                  Draft <b>3 cars</b> for each player to enable <b>Start Race</b>.<br/>
-                  Tip: use Auto-Pick Demo if you just want to watch.
+                <div class="t" id="overlayTitle">Ready</div>
+                <div class="s" id="overlaySubtitle">
+                  Draft <b>4 cars</b> for each player to enable <b>Start Race</b>.<br/>
+                  Tip: click <b>Auto Draft</b> if you want to watch instantly.
                 </div>
               </div>
             </div>
@@ -653,117 +772,102 @@
         </div>
 
         <div class="race-bottom">
-          <div class="results">
-            <h3>Results</h3>
-            <div id="resultsArea" class="small">No race yet.</div>
+          <div class="row2">
+            <div class="box">
+              <h3>Live Leaderboard</h3>
+              <div id="liveBoard" class="small">No race yet.</div>
+            </div>
+
+            <div class="box">
+              <h3>Lap Times</h3>
+              <div id="lapTimes" class="small">No race yet.</div>
+            </div>
+          </div>
+
+          <div class="box">
+            <h3>Final Results</h3>
+            <div id="results" class="small">No race yet.</div>
           </div>
         </div>
       </section>
     </div>
 
     <div class="footer">
-      Static HTML/CSS/JS • Works on GitHub Pages • Car images from <code>/cars</code>
+      Static HTML/CSS/JS • Put images in <code>/cars</code> • Edit <code>CAR_DB</code> in this file
     </div>
   </div>
 
   <script>
-    /* ==========================================================
-      RACE-1 • GAME SCRIPT (in-depth, single-file)
-      ----------------------------------------------------------
-      Overview:
-        - Draft: 2 players, 3 picks each (6 total)
-        - Snake draft optional (default ON)
-        - Race: oval track with straights & corners
-        - Stats: topSpeed, zeroToSixty, bhp, handling
-        - Physics-lite:
-            * acceleration curve influenced by 0-60 + bhp
-            * speed cap from topSpeed
-            * corner speed penalty from handling
-            * slipstream on straights
-            * tire wear & pit stops (optional)
-            * small random events (optional)
-        - Race duration: targets ~120s real time
-    =========================================================== */
+    /* ============================================================
+      SECTION 1 • CAR DATABASE
+      ------------------------------------------------------------
+      You can add as many cars as you want here.
 
-    /* ==========================================================
-      UTILITIES
-    =========================================================== */
+      REQUIRED FIELDS:
+        id: unique string
+        name: display name
+        cls: class tag (GT, Track, Hyper, etc)
+        topSpeed: mph (this is your "speed" stat)
+        zeroToSixty: seconds (0–60 time)
+        bhp: horsepower (used subtly for mid-range pull)
+        handling: 0..100 (cornering ability)
+        img: filename inside /cars folder
 
-    function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
-    function lerp(a, b, t){ return a + (b - a) * t; }
-    function rand(min, max){ return min + Math.random() * (max - min); }
-    function randInt(min, max){ return Math.floor(rand(min, max + 1)); }
+      EXAMPLE IMAGE PATH:
+        img: "falcon.png"  -> file at /cars/falcon.png
 
-    function formatTime(ms){
-      const s = Math.max(0, Math.floor(ms / 1000));
-      const m = Math.floor(s / 60);
-      const r = s % 60;
-      return `${m}:${String(r).padStart(2, "0")}`;
-    }
+      NOTE:
+        The drafting system will keep working as you add more cars.
+    ============================================================ */
 
-    // Deterministic-ish shuffle (seeded via simple LCG)
-    function seededShuffle(arr, seed){
-      let x = seed >>> 0;
-      const out = arr.slice();
-      for (let i = out.length - 1; i > 0; i--){
-        x = (1664525 * x + 1013904223) >>> 0;
-        const j = x % (i + 1);
-        [out[i], out[j]] = [out[j], out[i]];
-      }
-      return out;
-    }
+    const CAR_DB = [
+      { id:"falcon",  name:"Falcon",  cls:"GT",     topSpeed:220, zeroToSixty:3.4, bhp:460, handling:82, img:"falcon.png" },
+      { id:"viper",   name:"Viper",   cls:"GT",     topSpeed:235, zeroToSixty:3.1, bhp:510, handling:76, img:"viper.png" },
+      { id:"shadow",  name:"Shadow",  cls:"Track",  topSpeed:210, zeroToSixty:3.6, bhp:430, handling:90, img:"shadow.png" },
+      { id:"blaze",   name:"Blaze",   cls:"GT",     topSpeed:228, zeroToSixty:3.3, bhp:485, handling:84, img:"blaze.png" },
+      { id:"storm",   name:"Storm",   cls:"Track",  topSpeed:205, zeroToSixty:3.8, bhp:410, handling:95, img:"storm.png" },
+      { id:"phantom", name:"Phantom", cls:"Hyper",  topSpeed:250, zeroToSixty:2.9, bhp:620, handling:78, img:"phantom.png" },
 
-    /* ==========================================================
-      CAR LIBRARY
-      - Update images to match your /cars/ folder.
-      - Add more cars if you like.
-    =========================================================== */
+      { id:"ember",   name:"Ember",   cls:"GT",     topSpeed:225, zeroToSixty:3.2, bhp:495, handling:80, img:"ember.png" },
+      { id:"quartz",  name:"Quartz",  cls:"Track",  topSpeed:215, zeroToSixty:3.5, bhp:455, handling:92, img:"quartz.png" },
+      { id:"nova",    name:"Nova",    cls:"Hyper",  topSpeed:245, zeroToSixty:2.95,bhp:640, handling:81, img:"nova.png" },
+      { id:"raven",   name:"Raven",   cls:"GT",     topSpeed:232, zeroToSixty:3.25,bhp:520, handling:83, img:"raven.png" },
 
-    const CAR_LIBRARY = [
-      // name, class, topSpeed (mph), zeroToSixty (s), bhp, handling (0-100), image path
-      { id:"falcon",  name:"Falcon",  cls:"GT",   topSpeed:220, zeroToSixty:3.4, bhp:460, handling:82, img:"cars/car1.png" },
-      { id:"viper",   name:"Viper",   cls:"GT",   topSpeed:235, zeroToSixty:3.1, bhp:510, handling:76, img:"cars/car2.png" },
-      { id:"shadow",  name:"Shadow",  cls:"Track",topSpeed:210, zeroToSixty:3.6, bhp:430, handling:90, img:"cars/car3.png" },
-      { id:"blaze",   name:"Blaze",   cls:"GT",   topSpeed:228, zeroToSixty:3.3, bhp:485, handling:84, img:"cars/car4.png" },
-      { id:"storm",   name:"Storm",   cls:"Track",topSpeed:205, zeroToSixty:3.8, bhp:410, handling:95, img:"cars/car5.png" },
-      { id:"phantom", name:"Phantom", cls:"Hyper",topSpeed:250, zeroToSixty:2.9, bhp:620, handling:78, img:"cars/car6.png" },
+      /* Add more cars below (just keep unique ids) */
+      { id:"lynx",    name:"Lynx",    cls:"GT",     topSpeed:218, zeroToSixty:3.55,bhp:440, handling:86, img:"lynx.png" },
+      { id:"comet",   name:"Comet",   cls:"Track",  topSpeed:212, zeroToSixty:3.65,bhp:420, handling:96, img:"comet.png" },
+      { id:"sabre",   name:"Sabre",   cls:"GT",     topSpeed:238, zeroToSixty:3.15,bhp:540, handling:74, img:"sabre.png" },
+      { id:"zenith",  name:"Zenith",  cls:"Hyper",  topSpeed:255, zeroToSixty:2.85,bhp:690, handling:80, img:"zenith.png" },
 
-      // extra cars for a deeper pool
-      { id:"ember",   name:"Ember",   cls:"GT",   topSpeed:225, zeroToSixty:3.2, bhp:495, handling:80, img:"cars/car7.png" },
-      { id:"quartz",  name:"Quartz",  cls:"Track",topSpeed:215, zeroToSixty:3.5, bhp:455, handling:92, img:"cars/car8.png" },
-      { id:"nova",    name:"Nova",    cls:"Hyper",topSpeed:245, zeroToSixty:2.95,bhp:640, handling:81, img:"cars/car9.png" },
-      { id:"raven",   name:"Raven",   cls:"GT",   topSpeed:232, zeroToSixty:3.25,bhp:520, handling:83, img:"cars/car10.png" }
+      { id:"pulse",   name:"Pulse",   cls:"Track",  topSpeed:208, zeroToSixty:3.7, bhp:405, handling:98, img:"pulse.png" },
+      { id:"vector",  name:"Vector",  cls:"GT",     topSpeed:226, zeroToSixty:3.35,bhp:490, handling:85, img:"vector.png" },
+      { id:"arc",     name:"Arc",     cls:"Track",  topSpeed:216, zeroToSixty:3.45,bhp:470, handling:94, img:"arc.png" },
+      { id:"titan",   name:"Titan",   cls:"GT",     topSpeed:234, zeroToSixty:3.28,bhp:525, handling:79, img:"titan.png" }
     ];
 
-    // State for whether a car is picked
-    function createPoolState(){
-      return CAR_LIBRARY.map(c => ({ ...c, picked:false }));
-    }
-
-    /* ==========================================================
-      DOM HOOKS
-    =========================================================== */
-
+    /* ============================================================
+      SECTION 2 • DOM HOOKS
+    ============================================================ */
     const el = {
       btnReset: document.getElementById("btnReset"),
-      btnDemo: document.getElementById("btnDemo"),
+      btnAutoDraft: document.getElementById("btnAutoDraft"),
       btnStart: document.getElementById("btnStart"),
 
       pillTurn: document.getElementById("pillTurn"),
       pillPicks: document.getElementById("pillPicks"),
-      pillMode: document.getElementById("pillMode"),
+      pillPack: document.getElementById("pillPack"),
 
       p1Chips: document.getElementById("p1Chips"),
       p2Chips: document.getElementById("p2Chips"),
-      p1Tag: document.getElementById("p1Tag"),
-      p2Tag: document.getElementById("p2Tag"),
+      p1Meta: document.getElementById("p1Meta"),
+      p2Meta: document.getElementById("p2Meta"),
 
-      toggleSnake: document.getElementById("toggleSnake"),
-      toggleChaos: document.getElementById("toggleChaos"),
-      togglePit: document.getElementById("togglePit"),
+      togglePackBalance: document.getElementById("togglePackBalance"),
+      toggleMicroChaos: document.getElementById("toggleMicroChaos"),
 
+      packGrid: document.getElementById("packGrid"),
       searchInput: document.getElementById("searchInput"),
-      carGrid: document.getElementById("carGrid"),
+      packSubtitle: document.getElementById("packSubtitle"),
 
       pillStatus: document.getElementById("pillStatus"),
       pillTime: document.getElementById("pillTime"),
@@ -771,73 +875,88 @@
 
       canvas: document.getElementById("canvas"),
       overlay: document.getElementById("overlay"),
-      resultsArea: document.getElementById("resultsArea"),
+      overlayTitle: document.getElementById("overlayTitle"),
+      overlaySubtitle: document.getElementById("overlaySubtitle"),
+
+      liveBoard: document.getElementById("liveBoard"),
+      lapTimes: document.getElementById("lapTimes"),
+      results: document.getElementById("results"),
     };
 
     const ctx = el.canvas.getContext("2d");
 
-    /* ==========================================================
-      DRAFT STATE
-    =========================================================== */
+    /* ============================================================
+      SECTION 3 • CONSTANTS & UTILITIES
+    ============================================================ */
+    const PICKS_PER_PLAYER = 4;
+    const PACK_SIZE = 6;
+    const TOTAL_PICKS = PICKS_PER_PLAYER * 2; // 8 picks total
 
-    const PICKS_PER_PLAYER = 3;
+    const RACE_TARGET_MS = 120000; // ~2 min target
+    const FRAME_DT_MIN = 8;
+    const FRAME_DT_MAX = 40;
 
+    function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+    function lerp(a,b,t){ return a + (b-a)*t; }
+    function invLerp(a,b,v){ return (v-a)/(b-a); }
+    function rand(min,max){ return min + Math.random()*(max-min); }
+    function randInt(min,max){ return Math.floor(rand(min, max+1)); }
+
+    function formatTime(ms){
+      const s = Math.max(0, Math.floor(ms/1000));
+      const m = Math.floor(s/60);
+      const r = s%60;
+      return `${m}:${String(r).padStart(2,"0")}`;
+    }
+
+    // Quick stable id
+    function uid(){
+      return Math.random().toString(16).slice(2) + Date.now().toString(16);
+    }
+
+    /* ============================================================
+      SECTION 4 • GAME STATE
+    ============================================================ */
     const state = {
-      // draft
-      pool: createPoolState(),
+      // Draft
+      pool: [],            // array of cars with picked flag
+      currentPack: [],     // 6 cars shown right now
+      pickNumber: 0,       // 0..7
+      turn: 1,             // 1 or 2
       p1: [],
       p2: [],
-      turn: 1,          // 1 or 2
-      pickIndex: 0,     // overall pick count (0..5)
-      snake: true,
 
-      // options
-      chaos: false,
-      pit: true,
+      // Options
+      balancedPacks: true,
+      microChaos: true,
 
-      // race
+      // Race
       racing: false,
-      raceStartMs: 0,
-      lastFrameMs: 0,
-      simTimeMs: 0,
-      raceDurationMs: 120000, // 2 minutes target
-      lapsTarget: 8,          // will be tuned automatically
+      startMs: 0,
+      lastMs: 0,
+      simMs: 0,
+      raceDurationMs: RACE_TARGET_MS,
+      lapsTarget: 0,
+
+      track: null,
       racers: [],
       images: new Map(),
-      track: null,
-      results: null,
-      seed: 12345
+
+      // UI / computed
+      lastLeaderboardHtml: "",
+      lastLapTimesHtml: "",
     };
 
-    /* ==========================================================
-      DRAFT TURN LOGIC
-      Snake draft default sequence for 6 picks:
-        pick 0: P1
-        pick 1: P2
-        pick 2: P2
-        pick 3: P1
-        pick 4: P1
-        pick 5: P2
-    =========================================================== */
-
-    function currentDrafter(){
-      if (!state.snake){
-        // simple alternating
-        return state.pickIndex % 2 === 0 ? 1 : 2;
-      }
-      // snake pattern for 2 players
-      const seq = [1,2,2,1,1,2]; // for 6 picks total
-      return seq[state.pickIndex] ?? (state.pickIndex % 2 === 0 ? 1 : 2);
+    /* ============================================================
+      SECTION 5 • INITIALIZE POOL
+    ============================================================ */
+    function createPool(){
+      return CAR_DB.map(c => ({...c, picked:false}));
     }
 
-    function draftComplete(){
-      return state.p1.length === PICKS_PER_PLAYER && state.p2.length === PICKS_PER_PLAYER;
-    }
-
-    /* ==========================================================
-      IMAGE PRELOAD (for car sprites)
-    =========================================================== */
-
+    /* ============================================================
+      SECTION 6 • IMAGE LOADING
+    ============================================================ */
     function loadImage(path){
       return new Promise((resolve) => {
         const img = new Image();
@@ -847,20 +966,201 @@
       });
     }
 
-    async function preloadAllImages(){
-      const tasks = state.pool.map(async c => {
-        if (state.images.has(c.img)) return;
-        const img = await loadImage(c.img);
-        state.images.set(c.img, img);
+    async function preloadImagesForCars(cars){
+      const tasks = cars.map(async c => {
+        const path = "cars/" + c.img;
+        if (state.images.has(path)) return;
+        const img = await loadImage(path);
+        state.images.set(path, img);
       });
       await Promise.all(tasks);
     }
 
-    /* ==========================================================
-      UI RENDERING
-    =========================================================== */
+    async function preloadAll(){
+      await preloadImagesForCars(state.pool);
+    }
 
-    function setPillHtml(node, label, strongText){
+    /* ============================================================
+      SECTION 7 • DRAFT LOGIC (Random 6 each pick)
+    ============================================================ */
+
+    function updateOptionsFromUI(){
+      state.balancedPacks = !!el.togglePackBalance.checked;
+      state.microChaos = !!el.toggleMicroChaos.checked;
+    }
+
+    function currentPlayerName(){
+      return state.turn === 1 ? "Player 1" : "Player 2";
+    }
+
+    function draftComplete(){
+      return state.p1.length === PICKS_PER_PLAYER && state.p2.length === PICKS_PER_PLAYER;
+    }
+
+    function remainingCars(){
+      return state.pool.filter(c => !c.picked);
+    }
+
+    function scoreCarForBalance(car){
+      // A rough "overall" score to avoid extremely stacked packs
+      // We mainly consider top speed, 0-60, handling
+      // BHP is subtle support
+      const speedScore = (car.topSpeed - 180) / 80;           // ~0..1
+      const accelScore = clamp((4.6 - car.zeroToSixty) / 2.2, 0, 1); // better if lower time
+      const handlingScore = clamp((car.handling - 50) / 50, 0, 1);
+      const bhpScore = clamp((car.bhp - 300) / 450, 0, 1);
+
+      return speedScore*0.40 + accelScore*0.30 + handlingScore*0.25 + bhpScore*0.05;
+    }
+
+    function makeRandomPack(){
+      // Must return up to PACK_SIZE cars, no repeats, from remaining
+      const rem = remainingCars();
+      if (rem.length <= PACK_SIZE) return rem.slice();
+
+      // If balancedPacks enabled:
+      // We pick a candidate pack several times and choose one
+      // whose average score is closest to overall remaining average.
+      if (state.balancedPacks){
+        const scores = rem.map(scoreCarForBalance);
+        const avgAll = scores.reduce((a,b)=>a+b,0) / Math.max(1,scores.length);
+
+        let bestPack = null;
+        let bestDelta = Infinity;
+
+        const tries = 24; // more tries -> more balanced, still random
+        for (let t=0; t<tries; t++){
+          // random sample
+          const sample = [];
+          const used = new Set();
+          while(sample.length < PACK_SIZE){
+            const idx = randInt(0, rem.length-1);
+            if (used.has(idx)) continue;
+            used.add(idx);
+            sample.push(rem[idx]);
+          }
+
+          const avgPack = sample.map(scoreCarForBalance).reduce((a,b)=>a+b,0) / PACK_SIZE;
+          const delta = Math.abs(avgPack - avgAll);
+          if (delta < bestDelta){
+            bestDelta = delta;
+            bestPack = sample;
+          }
+        }
+        return bestPack || rem.slice(0, PACK_SIZE);
+      }
+
+      // else: purely random sample
+      const pack = [];
+      const used = new Set();
+      while(pack.length < PACK_SIZE){
+        const idx = randInt(0, rem.length-1);
+        if (used.has(idx)) continue;
+        used.add(idx);
+        pack.push(rem[idx]);
+      }
+      return pack;
+    }
+
+    function advanceTurn(){
+      // Alternate turns strictly: P1, P2, P1, P2...
+      state.turn = (state.turn === 1) ? 2 : 1;
+    }
+
+    function nextPack(){
+      updateOptionsFromUI();
+
+      // If draft done, no more packs
+      if (draftComplete()){
+        state.currentPack = [];
+        return;
+      }
+
+      state.currentPack = makeRandomPack();
+
+      // Preload pack images quickly (optional)
+      preloadImagesForCars(state.currentPack);
+    }
+
+    function pickCar(carId){
+      if (state.racing) return;
+      if (draftComplete()) return;
+
+      const car = state.pool.find(c => c.id === carId);
+      if (!car || car.picked) return;
+
+      // Pick for current turn
+      if (state.turn === 1){
+        if (state.p1.length >= PICKS_PER_PLAYER) return;
+        state.p1.push({...car});
+      } else {
+        if (state.p2.length >= PICKS_PER_PLAYER) return;
+        state.p2.push({...car});
+      }
+
+      // Mark picked in pool
+      car.picked = true;
+
+      state.pickNumber++;
+      advanceTurn();
+
+      // Generate next pack unless draft complete
+      nextPack();
+      renderAll();
+
+      // Enable start if draft complete
+      if (draftComplete()){
+        el.btnStart.disabled = false;
+        el.overlay.classList.remove("hidden");
+        el.overlayTitle.textContent = "Ready to Race";
+        el.overlaySubtitle.innerHTML = "Press <b>Start Race</b> to begin the 2-minute race.";
+      }
+    }
+
+    function autoDraft(){
+      if (state.racing) return;
+
+      // Draft until complete with simple "preference"
+      // P1: handling bias, P2: straight-line bias
+      while(!draftComplete()){
+        nextPack();
+
+        const pack = state.currentPack.slice();
+
+        // choose best in this pack for that player
+        let best = null;
+        let bestScore = -Infinity;
+
+        for (const c of pack){
+          const accel = (4.6 - c.zeroToSixty) * 12;
+          const speed = (c.topSpeed - 180) * 1.1;
+          const handle = (c.handling - 50) * 1.3;
+          const bhp = (c.bhp - 300) * 0.04;
+
+          let s;
+          if (state.turn === 1){
+            s = handle*1.5 + accel*1.1 + speed*0.6 + bhp*0.4;
+          } else {
+            s = speed*1.4 + accel*1.1 + handle*0.6 + bhp*0.45;
+          }
+
+          if (s > bestScore){
+            bestScore = s;
+            best = c;
+          }
+        }
+
+        if (!best) break;
+        pickCar(best.id);
+      }
+      renderAll();
+    }
+
+    /* ============================================================
+      SECTION 8 • DRAFT UI RENDER
+    ============================================================ */
+
+    function setPill(node, label, strongText){
       node.innerHTML = `${label}: <strong>${strongText}</strong>`;
     }
 
@@ -871,14 +1171,17 @@
       function addChip(container, car){
         const div = document.createElement("div");
         div.className = "chip";
+
         const img = document.createElement("img");
-        img.src = car.img;
+        img.src = "cars/" + car.img;
         img.alt = car.name;
+
         const meta = document.createElement("div");
         meta.innerHTML = `
           <div class="cname">${car.name}</div>
-          <div class="cmeta">${car.cls} • ${car.topSpeed}mph</div>
+          <div class="ctag">${car.cls} • ${car.topSpeed}mph • H${car.handling}</div>
         `;
+
         div.appendChild(img);
         div.appendChild(meta);
         container.appendChild(div);
@@ -887,31 +1190,11 @@
       state.p1.forEach(c => addChip(el.p1Chips, c));
       state.p2.forEach(c => addChip(el.p2Chips, c));
 
-      el.p1Tag.textContent = `${state.p1.length}/${PICKS_PER_PLAYER} drafted`;
-      el.p2Tag.textContent = `${state.p2.length}/${PICKS_PER_PLAYER} drafted`;
+      el.p1Meta.textContent = `${state.p1.length} / ${PICKS_PER_PLAYER} cars`;
+      el.p2Meta.textContent = `${state.p2.length} / ${PICKS_PER_PLAYER} cars`;
     }
 
-    function renderPills(){
-      state.snake = el.toggleSnake.checked;
-      state.chaos = el.toggleChaos.checked;
-      state.pit = el.togglePit.checked;
-
-      setPillHtml(el.pillMode, "Mode", state.snake ? "Snake" : "Alternating");
-      setPillHtml(el.pillTurn, "Turn", `Player ${currentDrafter()}`);
-      setPillHtml(el.pillPicks, "Picks", `${state.p1.length}/${PICKS_PER_PLAYER} • ${state.p2.length}/${PICKS_PER_PLAYER}`);
-
-      const startEnabled = draftComplete() && !state.racing;
-      el.btnStart.disabled = !startEnabled;
-
-      // overlay visibility
-      if (draftComplete() && !state.racing){
-        el.overlay.classList.add("hidden");
-      } else if (!state.racing){
-        el.overlay.classList.remove("hidden");
-      }
-    }
-
-    function carMatchesSearch(car, q){
+    function packMatchesSearch(car, q){
       if (!q) return true;
       const s = q.toLowerCase().trim();
       return (
@@ -920,42 +1203,38 @@
       );
     }
 
-    function renderCarGrid(){
+    function renderPack(){
+      el.packGrid.innerHTML = "";
+
       const q = el.searchInput.value || "";
-      el.carGrid.innerHTML = "";
+      const filtered = state.currentPack.filter(c => packMatchesSearch(c, q));
 
-      const drafter = currentDrafter();
-      const canPick = !state.racing && !draftComplete();
+      const pickIdx = clamp(state.pickNumber + 1, 1, TOTAL_PICKS);
+      const subtitle =
+        draftComplete()
+          ? "Draft complete."
+          : `${currentPlayerName()}: choose 1 of the 6 cars below.`;
+      el.packSubtitle.textContent = subtitle;
 
-      // Sort by class then speed (feel "pro")
-      const sorted = state.pool
-        .filter(c => carMatchesSearch(c, q))
-        .slice()
-        .sort((a,b) => {
-          if (a.picked !== b.picked) return a.picked ? 1 : -1;
-          if (a.cls !== b.cls) return a.cls.localeCompare(b.cls);
-          return b.topSpeed - a.topSpeed;
-        });
-
-      sorted.forEach(car => {
+      for (const car of filtered){
         const card = document.createElement("div");
-        card.className = "card" + (car.picked || !canPick ? " disabled" : "");
+        card.className = "card" + (car.picked ? " disabled" : "");
 
         const thumb = document.createElement("div");
         thumb.className = "thumb";
         thumb.innerHTML = `
-          <img src="${car.img}" alt="${car.name}"/>
+          <img src="cars/${car.img}" alt="${car.name}">
           <div class="badge">${car.cls}</div>
         `;
 
         const body = document.createElement("div");
-        body.className = "card-body";
+        body.className = "body";
 
-        const top = document.createElement("div");
-        top.className = "card-name";
-        top.innerHTML = `
-          <div class="n">${car.name}</div>
-          <div class="cls">${car.picked ? "Drafted" : "Available"}</div>
+        const nameRow = document.createElement("div");
+        nameRow.className = "name-row";
+        nameRow.innerHTML = `
+          <div class="car-name">${car.name}</div>
+          <div class="car-class">${car.picked ? "Drafted" : "Available"}</div>
         `;
 
         const stats = document.createElement("div");
@@ -968,692 +1247,654 @@
         `;
 
         const foot = document.createElement("div");
-        foot.className = "card-foot";
+        foot.className = "foot";
 
         const note = document.createElement("div");
         note.className = "small";
-        note.innerHTML = car.picked
-          ? `Picked already`
-          : `Click to draft for <b>Player ${drafter}</b>`;
+        note.innerHTML = `Click to draft for <b>${currentPlayerName()}</b>`;
 
-        const pickBtn = document.createElement("button");
-        pickBtn.className = "btn btn-secondary";
-        pickBtn.type = "button";
-        pickBtn.textContent = "Draft";
-        pickBtn.disabled = car.picked || !canPick;
+        const btn = document.createElement("button");
+        btn.className = "btn btn-secondary";
+        btn.type = "button";
+        btn.textContent = "Draft";
+        btn.disabled = car.picked || state.racing || draftComplete();
 
-        pickBtn.addEventListener("click", (ev) => {
+        btn.addEventListener("click", (ev) => {
           ev.stopPropagation();
-          draftCar(car.id);
+          pickCar(car.id);
         });
 
         foot.appendChild(note);
-        foot.appendChild(pickBtn);
+        foot.appendChild(btn);
+
+        body.appendChild(nameRow);
+        body.appendChild(stats);
 
         card.appendChild(thumb);
-        body.appendChild(top);
-        body.appendChild(stats);
         card.appendChild(body);
         card.appendChild(foot);
 
-        // Card click also drafts
         card.addEventListener("click", () => {
-          if (pickBtn.disabled) return;
-          draftCar(car.id);
+          if (btn.disabled) return;
+          pickCar(car.id);
         });
 
-        el.carGrid.appendChild(card);
-      });
+        el.packGrid.appendChild(card);
+      }
+
+      // If filter hides all, show message
+      if (filtered.length === 0){
+        const div = document.createElement("div");
+        div.className = "small";
+        div.style.padding = "12px";
+        div.textContent = "No cars match your search in this pack.";
+        el.packGrid.appendChild(div);
+      }
+
+      setPill(el.pillPack, "Pack", String(pickIdx));
+    }
+
+    function renderDraftPills(){
+      setPill(el.pillTurn, "Turn", `Player ${state.turn}`);
+      setPill(el.pillPicks, "Picks", `${state.p1.length}/${PICKS_PER_PLAYER} • ${state.p2.length}/${PICKS_PER_PLAYER}`);
+
+      el.btnStart.disabled = !draftComplete() || state.racing;
+
+      if (!state.racing){
+        if (draftComplete()){
+          el.overlay.classList.remove("hidden");
+          el.overlayTitle.textContent = "Ready to Race";
+          el.overlaySubtitle.innerHTML = "Press <b>Start Race</b> to begin.";
+        } else {
+          el.overlay.classList.remove("hidden");
+          el.overlayTitle.textContent = "Ready";
+          el.overlaySubtitle.innerHTML = "Draft <b>4 cars</b> each to enable <b>Start Race</b>.";
+        }
+      }
     }
 
     function renderAll(){
       renderTeamChips();
-      renderPills();
-      renderCarGrid();
+      renderDraftPills();
+      renderPack();
     }
 
-    /* ==========================================================
-      DRAFT ACTIONS
-    =========================================================== */
+    /* ============================================================
+      SECTION 9 • TRACK (Advanced multi-corner circuit)
+      ------------------------------------------------------------
+      We build a track from waypoints and automatically compute:
+        - segment lengths
+        - a parametric distance -> position mapping
+        - curvature severity per sample
+      Then we can compute corner speed caps using handling.
+    ============================================================ */
 
-    function draftCar(carId){
-      if (state.racing) return;
-      if (draftComplete()) return;
-
-      const car = state.pool.find(c => c.id === carId);
-      if (!car || car.picked) return;
-
-      const drafter = currentDrafter();
-      const team = drafter === 1 ? state.p1 : state.p2;
-
-      if (team.length >= PICKS_PER_PLAYER) return;
-
-      car.picked = true;
-      team.push({ ...car }); // store a copy
-
-      state.pickIndex++;
-
-      renderAll();
+    function v2(x,y){ return {x,y}; }
+    function add(a,b){ return {x:a.x+b.x, y:a.y+b.y}; }
+    function sub(a,b){ return {x:a.x-b.x, y:a.y-b.y}; }
+    function mul(a,s){ return {x:a.x*s, y:a.y*s}; }
+    function len(a){ return Math.hypot(a.x,a.y); }
+    function norm(a){
+      const l = len(a) || 1e-9;
+      return {x:a.x/l, y:a.y/l};
     }
-
-    function resetGame(){
-      state.pool = createPoolState();
-      state.p1 = [];
-      state.p2 = [];
-      state.pickIndex = 0;
-      state.racing = false;
-      state.results = null;
-      state.racers = [];
-      state.simTimeMs = 0;
-
-      el.resultsArea.innerHTML = `<div class="small">No race yet.</div>`;
-      el.searchInput.value = "";
-
-      setPillHtml(el.pillStatus, "Status", "Drafting");
-      setPillHtml(el.pillTime, "Time", "0:00 / 2:00");
-      setPillHtml(el.pillLap, "Lap", "–");
-
-      el.overlay.classList.remove("hidden");
-
-      renderAll();
-      drawStaticTrack(); // show track immediately
+    function dot(a,b){ return a.x*b.x + a.y*b.y; }
+    function cross(a,b){ return a.x*b.y - a.y*b.x; }
+    function angleBetween(a,b){
+      const na = norm(a);
+      const nb = norm(b);
+      const d = clamp(dot(na, nb), -1, 1);
+      return Math.acos(d);
     }
-
-    function autoPickDemo(){
-      if (state.racing) return;
-      resetGame();
-
-      // Shuffle pool and draft first 6 in snake order
-      const seed = Date.now() & 0xffffffff;
-      state.seed = seed;
-
-      const shuffled = seededShuffle(state.pool.filter(c => !c.picked), seed);
-
-      // Make picks: always best available for that player's preference
-      // Preference:
-      //   P1 favors handling + 0-60
-      //   P2 favors top speed + bhp
-      for (let i = 0; i < 6; i++){
-        const drafter = currentDrafter();
-
-        let pick;
-        if (drafter === 1){
-          pick = shuffled
-            .filter(c => !c.picked)
-            .slice()
-            .sort((a,b) => {
-              const sa = (a.handling * 1.15) + (100 / a.zeroToSixty * 8) + (a.bhp * 0.01);
-              const sb = (b.handling * 1.15) + (100 / b.zeroToSixty * 8) + (b.bhp * 0.01);
-              return sb - sa;
-            })[0];
-        } else {
-          pick = shuffled
-            .filter(c => !c.picked)
-            .slice()
-            .sort((a,b) => {
-              const sa = (a.topSpeed * 1.2) + (a.bhp * 0.08) + (100 / a.zeroToSixty * 5);
-              const sb = (b.topSpeed * 1.2) + (b.bhp * 0.08) + (100 / b.zeroToSixty * 5);
-              return sb - sa;
-            })[0];
-        }
-
-        if (!pick) break;
-        draftCar(pick.id);
-      }
-    }
-
-    /* ==========================================================
-      TRACK MODEL
-      - We'll define an oval track with parametric position s in [0,1)
-      - Map s -> (x,y) using two straights + two semicircle corners
-      - Determine whether s is in straight/corner to apply handling penalty
-    =========================================================== */
 
     function buildTrack(){
-      // Canvas reference space
+      // Track in canvas coordinates.
+      // This is intentionally not an oval.
+      // It has long straights, sweepers, chicanes, hairpins, etc.
+
       const W = el.canvas.width;
       const H = el.canvas.height;
 
-      // Oval geometry inside padding
-      const pad = 70;
-      const left = pad;
-      const right = W - pad;
-      const top = pad;
-      const bottom = H - pad;
+      // These waypoints create a complex loop.
+      // You can add more points to make it even more technical.
+      const pts = [
+        v2(160, 130),  // start/finish near here
+        v2(370, 120),
+        v2(560, 140),
+        v2(740, 120),  // straight
+        v2(860, 180),  // fast right kink
+        v2(900, 300),  // heavy braking
+        v2(820, 390),  // hairpin-ish
+        v2(700, 430),  // exit
+        v2(620, 390),  // chicane start
+        v2(560, 440),
+        v2(500, 380),
+        v2(420, 420),
+        v2(360, 460),  // technical
+        v2(300, 420),
+        v2(240, 460),
+        v2(200, 400),
+        v2(150, 340),
+        v2(130, 260),  // long left
+        v2(200, 200)   // back to start region
+      ];
 
-      // Corners are semicircles with radius based on height
-      const radius = (bottom - top) / 2;
-      const cxL = left + radius;
-      const cxR = right - radius;
-      const cy = (top + bottom) / 2;
+      // Auto-close
+      const loop = pts.slice();
+      // ensure last point not same as first; we will treat looped path
+      // We'll do periodic indexing.
 
-      // Straight lengths
-      const straight = (cxR - cxL);
+      // Build polyline segments and lengths
+      const segs = [];
+      let total = 0;
 
-      // Total "track length" in arbitrary meters (scaled)
-      // We'll tune length so a typical car wins around 120s.
-      const trackMeters = 4200; // ~4.2km per lap (fictional)
-
-      // Segment proportions for s mapping
-      // We'll map s along:
-      // 0..a   = top straight (left to right)
-      // a..b   = right corner (top to bottom)
-      // b..c   = bottom straight (right to left)
-      // c..1   = left corner (bottom to top)
-      const perimPx = 2 * straight + 2 * Math.PI * radius;
-      const topStraightPx = straight;
-      const rightCornerPx = Math.PI * radius;
-      const bottomStraightPx = straight;
-      const leftCornerPx = Math.PI * radius;
-
-      const a = topStraightPx / perimPx;
-      const b = (topStraightPx + rightCornerPx) / perimPx;
-      const c = (topStraightPx + rightCornerPx + bottomStraightPx) / perimPx;
-
-      return {
-        W, H,
-        pad,
-        left, right, top, bottom,
-        radius,
-        cxL, cxR, cy,
-        straight,
-        trackMeters,
-        sA: a, sB: b, sC: c,
-        perimPx
-      };
-    }
-
-    function isCorner(s){
-      // in right corner or left corner
-      const t = state.track;
-      if (!t) return false;
-      return (s >= t.sA && s < t.sB) || (s >= t.sC && s < 1);
-    }
-
-    function trackPoint(s){
-      // returns x,y on oval and a "heading" angle for sprite rotation (optional)
-      const t = state.track;
-      const { cxL, cxR, cy, radius, sA, sB, sC } = t;
-
-      // Normalize s
-      s = ((s % 1) + 1) % 1;
-
-      // top straight
-      if (s < sA){
-        const u = s / sA;
-        const x = lerp(cxL, cxR, u);
-        const y = cy - radius;
-        const heading = 0; // east
-        return { x, y, heading };
+      for (let i=0;i<loop.length;i++){
+        const a = loop[i];
+        const b = loop[(i+1) % loop.length];
+        const d = len(sub(b,a));
+        segs.push({ a, b, d, cum0: total, cum1: total + d });
+        total += d;
       }
 
-      // right corner (top->bottom), angle -90deg to +90deg
-      if (s < sB){
-        const u = (s - sA) / (sB - sA);
-        const ang = (-Math.PI/2) + u * Math.PI; // -90 to +90
-        const x = cxR + Math.cos(ang) * radius;
-        const y = cy + Math.sin(ang) * radius;
-        const heading = ang + Math.PI/2;
-        return { x, y, heading };
+      // We will sample curvature along the path at multiple points.
+      // Curvature severity computed via turning angle at vertices.
+      // We'll define a "corner severity" per segment by looking at
+      // angle between incoming and outgoing vectors at vertex.
+      const vertexSeverity = new Array(loop.length).fill(0);
+
+      for (let i=0;i<loop.length;i++){
+        const prev = loop[(i-1 + loop.length) % loop.length];
+        const curr = loop[i];
+        const next = loop[(i+1) % loop.length];
+
+        const vin = sub(curr, prev);
+        const vout = sub(next, curr);
+
+        const ang = angleBetween(vin, vout); // 0=straight, pi=reverse
+        // Map to severity:
+        // small angle -> low severity, larger angle -> high severity
+        // We'll clamp extremes.
+        const sev = clamp(ang / Math.PI, 0, 1); // 0..1
+        vertexSeverity[i] = sev;
       }
 
-      // bottom straight (right->left)
-      if (s < sC){
-        const u = (s - sB) / (sC - sB);
-        const x = lerp(cxR, cxL, u);
-        const y = cy + radius;
-        const heading = Math.PI; // west
-        return { x, y, heading };
+      // For each segment, assign severity blending its endpoints
+      for (let i=0;i<segs.length;i++){
+        const sevA = vertexSeverity[i];
+        const sevB = vertexSeverity[(i+1) % vertexSeverity.length];
+        const sev = clamp((sevA + sevB)*0.5, 0, 1);
+        segs[i].severity = sev; // 0 straight .. 1 sharp
       }
 
-      // left corner (bottom->top), angle +90 to +270
-      {
-        const u = (s - sC) / (1 - sC);
-        const ang = (Math.PI/2) + u * Math.PI; // +90 to +270
-        const x = cxL + Math.cos(ang) * radius;
-        const y = cy + Math.sin(ang) * radius;
-        const heading = ang + Math.PI/2;
-        return { x, y, heading };
-      }
-    }
+      // Define a fictional "real" lap length in meters.
+      // We map pixels to meters by choosing a scale so lap times feel realistic.
+      // We'll tune pxToM so that typical lap times land ~25-35s, then set lapsTarget
+      // so total ~120s.
+      const lapPixels = total;
+      const lapMeters = 3400; // ~3.4 km lap (fictional)
+      const pxToM = lapMeters / lapPixels;
 
-    /* ==========================================================
-      RACE PHYSICS
-      - We simulate each car along track distance (meters) and convert
-        to s = distance / lapLength.
-      - Each car has:
-        * v (m/s)
-        * distance (m)
-        * lap
-        * wear
-        * pitCooldown
-        * eventCooldown
-      - Race ends at duration ~120s (real time), and winner is
-        greatest distance.
-    =========================================================== */
+      // Provide helper: distance (meters) -> canvas position + heading + severity
+      function sampleAtDistMeters(distM){
+        // Convert meters to pixels along polyline
+        const dPx = (distM / pxToM) % lapPixels;
+        const sPx = (dPx + lapPixels) % lapPixels;
 
-    function mphToMs(mph){
-      return mph * 0.44704; // mph -> m/s
-    }
-
-    function computeCarPerformance(car){
-      // Convert car stats into sim coefficients
-      // Higher bhp & lower 0-60 => better accel
-      // Handling reduces corner penalty
-      // Top speed sets cap
-
-      const top = mphToMs(car.topSpeed);
-
-      // Map 0-60: 2.8..4.2 typical -> accel base
-      const z = clamp(car.zeroToSixty, 2.6, 5.0);
-      const accelFromZero = lerp(6.5, 3.2, (z - 2.6) / (5.0 - 2.6)); // lower time => higher accel
-
-      // bhp helps acceleration, diminishing returns
-      const bhpNorm = clamp(car.bhp, 300, 800);
-      const bhpBoost = 1 + ((bhpNorm - 300) / 500) * 0.55; // up to +55%
-
-      const accel = accelFromZero * bhpBoost; // m/s^2-ish
-
-      // handling affects corner speed retention:
-      // handling 60..98 => retention 0.70..0.94
-      const h = clamp(car.handling, 40, 100);
-      const cornerRetention = lerp(0.62, 0.95, (h - 40) / 60);
-
-      // stability reduces chaos penalty
-      const stability = lerp(0.75, 0.98, (h - 40) / 60);
-
-      return { top, accel, cornerRetention, stability };
-    }
-
-    function buildRacers(){
-      const all = [...state.p1, ...state.p2];
-      const racers = all.map((car, idx) => {
-        const perf = computeCarPerformance(car);
-
-        return {
-          // identity
-          car,
-          idx,
-          team: idx < PICKS_PER_PLAYER ? 1 : 2,
-
-          // sim
-          v: 0,                 // m/s
-          distance: 0,          // meters traveled
-          lap: 0,
-          lapTimes: [],
-          lapStartDist: 0,
-          finished: false,
-
-          // dynamics
-          perf,
-          wear: 0,              // 0..1
-          inPit: false,
-          pitTimeLeft: 0,       // ms
-          pitCount: 0,
-
-          // chaos event
-          eventTimeLeft: 0,     // ms
-          eventCount: 0,
-
-          // drawing lane offset (slight separation)
-          laneOffset: (idx % 2 === 0 ? -1 : 1) * (10 + (idx * 2)),
-
-          // photo cache
-          sprite: state.images.get(car.img) || null
-        };
-      });
-
-      return racers;
-    }
-
-    function tuneLapsTarget(racers){
-      // We want the race to feel like ~2 minutes and have multiple laps.
-      // Estimate typical lap time from a reference car.
-      // We'll simulate an approximate lap time using average speed heuristics.
-      const t = state.track;
-      const lapMeters = t.trackMeters;
-
-      // pick a mid car
-      const r = racers[Math.floor(racers.length / 2)];
-      const top = r.perf.top;
-
-      // assume average speed is 70% of top, reduced by corners
-      const avgCornerFactor = 0.85 * r.perf.cornerRetention;
-      const avg = top * 0.70 * avgCornerFactor;
-
-      const lapTime = lapMeters / Math.max(1, avg); // seconds
-      const raceSec = state.raceDurationMs / 1000;
-
-      const laps = clamp(Math.round(raceSec / lapTime), 5, 12);
-      return laps;
-    }
-
-    function startRace(){
-      if (!draftComplete()) return;
-      if (state.racing) return;
-
-      state.track = buildTrack();
-
-      // Preload images; then start
-      preloadAllImages().then(() => {
-        state.racers = buildRacers();
-        state.lapsTarget = tuneLapsTarget(state.racers);
-
-        state.racing = true;
-        state.raceStartMs = performance.now();
-        state.lastFrameMs = state.raceStartMs;
-        state.simTimeMs = 0;
-        state.results = null;
-
-        setPillHtml(el.pillStatus, "Status", "Racing");
-        el.overlay.classList.add("hidden");
-
-        el.resultsArea.innerHTML = `<div class="small">Race in progress...</div>`;
-        requestAnimationFrame(frame);
-      });
-    }
-
-    function endRace(){
-      state.racing = false;
-
-      // sort by distance desc
-      const sorted = state.racers.slice().sort((a,b) => b.distance - a.distance);
-
-      // build results table
-      let html = `<table>
-        <thead>
-          <tr>
-            <th class="pos">#</th>
-            <th>Car</th>
-            <th>Team</th>
-            <th>Distance</th>
-            <th>Laps</th>
-            <th>Pits</th>
-            <th>Events</th>
-            <th>Best Lap</th>
-          </tr>
-        </thead>
-        <tbody>
-      `;
-
-      for (let i=0; i<sorted.length; i++){
-        const r = sorted[i];
-        const bestLap = r.lapTimes.length
-          ? Math.min(...r.lapTimes)
-          : null;
-
-        html += `
-          <tr>
-            <td class="pos">${i+1}</td>
-            <td><b>${r.car.name}</b> <span class="muted">(${r.car.cls})</span></td>
-            <td>Player ${r.team}</td>
-            <td>${(r.distance/1000).toFixed(2)} km</td>
-            <td>${r.lap}</td>
-            <td>${r.pitCount}</td>
-            <td>${r.eventCount}</td>
-            <td>${bestLap ? formatTime(bestLap) : "—"}</td>
-          </tr>
-        `;
-      }
-
-      html += `</tbody></table>`;
-
-      el.resultsArea.innerHTML = html;
-
-      setPillHtml(el.pillStatus, "Status", "Finished");
-      el.overlay.classList.remove("hidden");
-      el.overlay.querySelector(".t").textContent = `Winner: ${sorted[0].car.name}`;
-      el.overlay.querySelector(".s").innerHTML =
-        `Player ${sorted[0].team} wins. Press <b>Reset</b> to draft again.`;
-    }
-
-    function drawStaticTrack(){
-      state.track = buildTrack();
-      drawScene(0);
-    }
-
-    /* ==========================================================
-      SIM STEP
-    =========================================================== */
-
-    function stepRacer(r, dtMs){
-      const dt = dtMs / 1000;
-
-      const t = state.track;
-      const lapMeters = t.trackMeters;
-
-      // Compute progress along track
-      const s = (r.distance / lapMeters) % 1;
-
-      // Determine segment type
-      const corner = isCorner(s);
-
-      // Tire wear (optional)
-      if (state.pit){
-        const wearRate = corner ? 0.00018 : 0.00011; // per ms
-        r.wear = clamp(r.wear + wearRate * dtMs, 0, 1);
-      } else {
-        r.wear = 0;
-      }
-
-      // Pit logic (optional)
-      if (state.pit){
-        // If wear high, take a pit stop once per ~2 laps
-        const shouldPit = (r.wear > 0.85) && !r.inPit && (r.pitTimeLeft <= 0);
-        if (shouldPit){
-          // Enter pit on a specific segment (top straight near start)
-          if (s < 0.08){
-            r.inPit = true;
-            r.pitTimeLeft = 5500 + randInt(0, 1200); // 5.5-6.7s
-            r.pitCount++;
-          }
-        }
-      }
-
-      if (r.inPit){
-        r.pitTimeLeft -= dtMs;
-        // Pit speed is slow crawl; car still moves slightly
-        r.v = Math.max(6, r.v * 0.85);
-        r.distance += r.v * dt;
-
-        if (r.pitTimeLeft <= 0){
-          r.inPit = false;
-          r.wear = 0.15; // new tires not perfect instantly
-        }
-
-        return;
-      }
-
-      // Chaos events (optional)
-      if (state.chaos){
-        if (r.eventTimeLeft > 0){
-          r.eventTimeLeft -= dtMs;
-          // Apply temporary slowdown
-          const slow = 0.65 + (1 - r.perf.stability) * 0.25;
-          r.v *= slow;
-        } else {
-          // Chance of a minor error, more likely in corners and with low handling
-          const baseChance = corner ? 0.0008 : 0.00025; // per second-ish
-          const handlingPenalty = lerp(1.8, 0.8, r.perf.stability); // lower stability => higher
-          const chance = baseChance * handlingPenalty * dt;
-          if (Math.random() < chance){
-            r.eventTimeLeft = 900 + randInt(0, 900); // 0.9-1.8s
-            r.eventCount++;
-          }
-        }
-      }
-
-      // Slipstream: if close behind another racer on straight, small speed boost
-      let slip = 1.0;
-      if (!corner){
-        for (const other of state.racers){
-          if (other === r) continue;
-
-          const dBehind = other.distance - r.distance;
-          // r behind other if dBehind > 0 and small
-          if (dBehind > 0 && dBehind < 35){
-            slip = 1.04; // +4% on straight if in range
+        // Find segment containing sPx
+        // (linear scan ok; small seg count)
+        let seg = segs[0];
+        for (let i=0;i<segs.length;i++){
+          if (sPx >= segs[i].cum0 && sPx < segs[i].cum1){
+            seg = segs[i];
             break;
           }
         }
+
+        const t = (sPx - seg.cum0) / Math.max(1e-9, seg.d);
+        const p = add(seg.a, mul(sub(seg.b, seg.a), t));
+
+        // Heading vector
+        const dir = norm(sub(seg.b, seg.a));
+        const heading = Math.atan2(dir.y, dir.x);
+
+        // Severity: use seg severity + extra boost near vertices
+        // so braking zones feel localized.
+        const sev = seg.severity;
+
+        return { x:p.x, y:p.y, heading, severity: sev };
       }
 
-      // Corner grip factor: handling improves corner retention
-      const cornerFactor = corner ? r.perf.cornerRetention : 1.0;
+      return {
+        W, H,
+        pts: loop,
+        segs,
+        lapPixels,
+        lapMeters,
+        pxToM,
+        sampleAtDistMeters
+      };
+    }
 
-      // Wear penalty: worn tires reduce cornerFactor and accel slightly
-      const wearPenalty = state.pit ? lerp(1.0, 0.80, r.wear) : 1.0;
-      const wearCorner = state.pit ? lerp(1.0, 0.75, r.wear) : 1.0;
+    /* ============================================================
+      SECTION 10 • VEHICLE PERFORMANCE MODEL
+      ------------------------------------------------------------
+      User spec:
+        - speed = top speed (mph)
+        - 0–60 affects acceleration (realistic curve from 60 to top speed)
+        - handling affects cornering
 
-      // Compute target top speed by segment
-      const vCap = r.perf.top * cornerFactor * wearCorner;
+      Implementation:
+        - Convert mph -> m/s cap (Vmax)
+        - Calibrate low-speed acceleration so 0–60 is roughly achieved
+        - Use diminishing acceleration curve above 60 (drag-limited)
+        - Add subtle bhp influence to mid-range (60-140 mph)
+        - Corner speed cap:
+            VcornerCap = Vmax * (base + handlingFactor) * trackCornerFactor
+          where trackCornerFactor depends on severity:
+            severity 0 => 1.0
+            severity 1 => ~0.55
+          and handlingFactor depends on handling (0..100):
+            handling 70 => smaller corner cap
+            handling 98 => much higher corner cap
+    ============================================================ */
 
-      // Acceleration: stronger at low speeds, weaker near cap
-      const accelBase = r.perf.accel * wearPenalty;
-      const accelCurve = clamp(1 - (r.v / Math.max(1, vCap)), 0.08, 1.0);
-      const a = accelBase * accelCurve * slip;
+    function mphToMs(mph){ return mph * 0.44704; }
 
-      // Update v and distance
-      r.v = clamp(r.v + a * dt, 0, vCap);
+    function computePerf(car){
+      const vmax = mphToMs(car.topSpeed);
+
+      // 0–60 calibration
+      const v60 = mphToMs(60);
+
+      // Base acceleration needed to do 0-60 in given time (ignoring traction limits)
+      const t060 = clamp(car.zeroToSixty, 2.2, 6.5);
+      const a0 = v60 / t060; // m/s^2
+
+      // Diminishing acceleration exponent:
+      // higher top speed => more drag, larger exponent
+      const exp = lerp(1.25, 1.75, clamp((car.topSpeed - 200)/80, 0, 1));
+
+      // Mid-range pull factor from BHP:
+      // higher bhp gives better accel above 60 (but diminishing returns)
+      const bhp = clamp(car.bhp, 250, 900);
+      const bhpBoost = 1 + Math.sqrt((bhp - 250) / 650) * 0.22; // up to ~+22%
+
+      // Handling maps to corner retention
+      const h = clamp(car.handling, 40, 100);
+      const handlingFactor = lerp(0.25, 0.85, (h - 40)/60); // 40->0.25, 100->0.85
+
+      return {
+        vmax,
+        v60,
+        a0,
+        exp,
+        bhpBoost,
+        handlingFactor
+      };
+    }
+
+    function accelAtSpeed(perf, v){
+      // Realistic-ish acceleration:
+      // - Below 60: near a0 but slightly traction-limited
+      // - Above 60: diminishing as v approaches vmax
+      // - BHP gives extra mid-range pull
+      // This is not a perfect physics sim, but it behaves as requested.
+
+      const { vmax, v60, a0, exp, bhpBoost } = perf;
+
+      // Traction-limited cap: strong cars can't do insane 0 speed accel
+      // This is "feel" tuning.
+      const tractionCap = 11.0; // m/s^2 ~ 1.1g
+      const aLow = Math.min(a0 * 1.06, tractionCap);
+
+      if (v < v60){
+        // small decay as speed rises
+        const t = clamp(v / v60, 0, 1);
+        return aLow * lerp(1.0, 0.86, t);
+      }
+
+      // Above 60: drag-limited curve
+      const x = clamp(v / Math.max(1e-9, vmax), 0, 1);
+      // Base diminishing
+      let a = a0 * 0.72 * Math.pow(1 - x, exp);
+
+      // Mid-range bhp boost (peaks around 0.45-0.65 of vmax)
+      const mid = Math.exp(-Math.pow((x - 0.55) / 0.18, 2));
+      a *= (1 + (bhpBoost - 1) * mid);
+
+      // Avoid zero accel far from vmax
+      a = Math.max(a, 0.15);
+
+      return a;
+    }
+
+    function cornerCap(perf, severity){
+      // severity 0 => straight -> cap is vmax
+      // severity 1 => sharp -> cap is significantly reduced
+      const { vmax, handlingFactor } = perf;
+
+      // Track curvature factor
+      // 0 -> 1.00
+      // 1 -> ~0.55
+      const trackFactor = lerp(1.0, 0.55, clamp(severity, 0, 1));
+
+      // Handling:
+      // handlingFactor is 0.25..0.85 approx
+      // Convert to multiplier:
+      // low handling => smaller multiplier
+      // high handling => larger multiplier
+      const handleMul = lerp(0.55, 0.95, handlingFactor); // ~0.55..0.95
+
+      // Overall corner cap
+      const cap = vmax * trackFactor * handleMul;
+
+      // Never allow corners to be faster than vmax
+      return Math.min(cap, vmax);
+    }
+
+    /* ============================================================
+      SECTION 11 • RACE SIM
+      ------------------------------------------------------------
+      We simulate each car as a particle moving along track distance (meters).
+      Each racer:
+        - distance (m)
+        - velocity (m/s)
+        - lap count + lap start time
+        - lap times array
+      We stop when:
+        - time >= 2 minutes OR leader reaches lapsTarget (computed)
+    ============================================================ */
+
+    function buildRacers(){
+      const all = [...state.p1, ...state.p2];
+
+      return all.map((car, idx) => {
+        const perf = computePerf(car);
+        const team = (idx < PICKS_PER_PLAYER) ? 1 : 2;
+        const spritePath = "cars/" + car.img;
+
+        return {
+          id: uid(),
+          car,
+          team,
+          perf,
+
+          // sim
+          distance: 0,
+          v: 0,
+
+          // lap tracking
+          lap: 0,
+          lapTimes: [],
+          lastLapStartMs: 0,
+
+          // micro variance / driving line offset
+          laneOffset: (idx - (all.length-1)/2) * 10,
+
+          // sprite cached
+          spritePath,
+          sprite: state.images.get(spritePath) || null,
+        };
+      });
+    }
+
+    function estimateLapTimeSeconds(racer){
+      // Roughly estimate lap time from performance and track severity average.
+      // We'll sample a few points to compute average corner cap impact.
+      const track = state.track;
+      const samples = 180;
+      let sumCap = 0;
+
+      for (let i=0; i<samples; i++){
+        const s = (i / samples) * track.lapMeters;
+        const sm = track.sampleAtDistMeters(s);
+        const cap = cornerCap(racer.perf, sm.severity);
+        sumCap += cap;
+      }
+
+      const avgCap = sumCap / samples;
+
+      // Average speed is a fraction of avg cap due to accel/braking transitions.
+      // Tuning:
+      const avgSpeed = avgCap * 0.72;
+
+      return track.lapMeters / Math.max(1, avgSpeed);
+    }
+
+    function computeLapsTarget(){
+      // target around 2 minutes -> choose lapsTarget based on mid racer estimate
+      const racers = state.racers;
+      if (!racers.length) return 6;
+
+      const mid = racers[Math.floor(racers.length/2)];
+      const lapSec = estimateLapTimeSeconds(mid);
+      const raceSec = state.raceDurationMs / 1000;
+
+      const laps = clamp(Math.round(raceSec / lapSec), 4, 10);
+      return laps;
+    }
+
+    function stepRacer(r, dtMs){
+      const dt = dtMs / 1000;
+      const track = state.track;
+
+      // Look ahead point to get severity (braking anticipation)
+      const lookAhead = clamp(r.v * 0.85, 18, 55); // meters
+      const here = track.sampleAtDistMeters(r.distance);
+      const ahead = track.sampleAtDistMeters(r.distance + lookAhead);
+
+      // We use ahead severity to start braking early.
+      const sev = clamp(lerp(here.severity, ahead.severity, 0.70), 0, 1);
+
+      // Compute caps
+      const vmaxStraight = r.perf.vmax;
+      const vmaxCorner = cornerCap(r.perf, sev);
+      const vcap = Math.min(vmaxStraight, vmaxCorner);
+
+      // If current velocity exceeds cap, brake
+      if (r.v > vcap){
+        // braking strength scales with severity
+        const brake = lerp(5.5, 10.5, sev); // m/s^2
+        r.v = Math.max(vcap, r.v - brake * dt);
+      } else {
+        // accelerate toward cap
+        const a = accelAtSpeed(r.perf, r.v);
+        r.v = Math.min(vcap, r.v + a * dt);
+      }
+
+      // Micro variance: slight "line imperfections"
+      if (state.microChaos){
+        // tiny random fluctuations in speed, more in corners
+        const jitter = (0.006 + sev*0.010) * (Math.random() - 0.5);
+        r.v = Math.max(0, r.v * (1 + jitter));
+      }
+
+      // Advance distance
       r.distance += r.v * dt;
 
-      // Lap counting
+      // Lap tracking
+      const lapMeters = track.lapMeters;
       const newLap = Math.floor(r.distance / lapMeters);
+
       if (newLap > r.lap){
         // record lap time
-        const lapTime = state.simTimeMs - (r.lapTimes.reduce((acc,ms)=>acc+ms,0));
-        if (lapTime > 0 && lapTime < 600000){
+        const lapTime = state.simMs - r.lastLapStartMs;
+        if (lapTime > 1000 && lapTime < 600000){
           r.lapTimes.push(lapTime);
         }
         r.lap = newLap;
+        r.lastLapStartMs = state.simMs;
       }
     }
 
     function stepAll(dtMs){
-      // Step all racers
       for (const r of state.racers){
         stepRacer(r, dtMs);
       }
     }
 
-    /* ==========================================================
-      DRAWING
-    =========================================================== */
+    function leader(){
+      return state.racers.slice().sort((a,b)=>b.distance-a.distance)[0];
+    }
 
-    function drawTrack(t){
-      // Background
-      ctx.clearRect(0,0,t.W,t.H);
+    /* ============================================================
+      SECTION 12 • DRAWING
+      ------------------------------------------------------------
+      We draw:
+        - background grid
+        - track polyline + road width
+        - start/finish
+        - cars with sprites along path
+        - mini HUD leaderboard on canvas
+    ============================================================ */
 
-      // subtle grid
+    function ensureRoundRect(){
+      if (!CanvasRenderingContext2D.prototype.roundRect){
+        CanvasRenderingContext2D.prototype.roundRect = function(x,y,w,h,r){
+          const rr = Math.min(r, w/2, h/2);
+          this.beginPath();
+          this.moveTo(x+rr, y);
+          this.arcTo(x+w, y, x+w, y+h, rr);
+          this.arcTo(x+w, y+h, x, y+h, rr);
+          this.arcTo(x, y+h, x, y, rr);
+          this.arcTo(x, y, x+w, y, rr);
+          this.closePath();
+          return this;
+        };
+      }
+    }
+    ensureRoundRect();
+
+    function drawBackground(track){
+      ctx.clearRect(0,0,track.W,track.H);
+
+      // grid
       ctx.save();
-      ctx.globalAlpha = 0.12;
+      ctx.globalAlpha = 0.16;
       ctx.strokeStyle = "#ffffff";
       ctx.lineWidth = 1;
-      for (let x=0; x<t.W; x+=40){
+      for (let x=0; x<track.W; x+=42){
         ctx.beginPath();
         ctx.moveTo(x,0);
-        ctx.lineTo(x,t.H);
+        ctx.lineTo(x,track.H);
         ctx.stroke();
       }
-      for (let y=0; y<t.H; y+=40){
+      for (let y=0; y<track.H; y+=42){
         ctx.beginPath();
         ctx.moveTo(0,y);
-        ctx.lineTo(t.W,y);
+        ctx.lineTo(track.W,y);
         ctx.stroke();
       }
-      ctx.restore();
-
-      // Asphalt oval
-      ctx.save();
-      ctx.fillStyle = "rgba(0,0,0,0.35)";
-      ctx.strokeStyle = "rgba(255,255,255,0.12)";
-      ctx.lineWidth = 18;
-      ctx.lineCap = "round";
-
-      const { cxL, cxR, cy, radius } = t;
-
-      ctx.beginPath();
-      // top straight
-      ctx.moveTo(cxL, cy - radius);
-      ctx.lineTo(cxR, cy - radius);
-      // right arc
-      ctx.arc(cxR, cy, radius, -Math.PI/2, Math.PI/2);
-      // bottom straight
-      ctx.lineTo(cxL, cy + radius);
-      // left arc
-      ctx.arc(cxL, cy, radius, Math.PI/2, -Math.PI/2);
-      ctx.closePath();
-
-      ctx.stroke();
-
-      // inner line
-      ctx.strokeStyle = "rgba(255,255,255,0.10)";
-      ctx.lineWidth = 3;
-      ctx.stroke();
-
-      ctx.restore();
-
-      // Start/finish line
-      ctx.save();
-      const start = trackPoint(0.02);
-      ctx.strokeStyle = "rgba(255,255,255,0.85)";
-      ctx.lineWidth = 4;
-      ctx.beginPath();
-      ctx.moveTo(start.x - 18, start.y - 24);
-      ctx.lineTo(start.x + 18, start.y + 24);
-      ctx.stroke();
-      ctx.restore();
-
-      // Labels
-      ctx.save();
-      ctx.fillStyle = "rgba(255,255,255,0.65)";
-      ctx.font = "700 14px ui-sans-serif, system-ui";
-      ctx.fillText("START / FINISH", start.x + 18, start.y - 18);
       ctx.restore();
     }
 
-    function drawRacer(r, t){
-      const lapMeters = t.trackMeters;
-      const s = (r.distance / lapMeters) % 1;
-      const p = trackPoint(s);
+    function drawTrack(track){
+      const pts = track.pts;
 
-      // lane offset: perpendicular to heading
-      const off = r.laneOffset;
-      const nx = Math.cos(p.heading + Math.PI/2);
-      const ny = Math.sin(p.heading + Math.PI/2);
-      const x = p.x + nx * off;
-      const y = p.y + ny * off;
+      // Road (thick)
+      ctx.save();
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
 
-      // draw sprite
-      const img = r.sprite || state.images.get(r.car.img);
+      ctx.strokeStyle = "rgba(0,0,0,0.40)";
+      ctx.lineWidth = 54;
+      ctx.beginPath();
+      for (let i=0;i<pts.length;i++){
+        const p = pts[i];
+        if (i===0) ctx.moveTo(p.x, p.y);
+        else ctx.lineTo(p.x, p.y);
+      }
+      ctx.closePath();
+      ctx.stroke();
 
-      // fallback if missing
-      const w = 52;
-      const h = 28;
+      // Edge line
+      ctx.strokeStyle = "rgba(255,255,255,0.10)";
+      ctx.lineWidth = 6;
+      ctx.beginPath();
+      for (let i=0;i<pts.length;i++){
+        const p = pts[i];
+        if (i===0) ctx.moveTo(p.x, p.y);
+        else ctx.lineTo(p.x, p.y);
+      }
+      ctx.closePath();
+      ctx.stroke();
+
+      // Center line (dashed)
+      ctx.strokeStyle = "rgba(255,255,255,0.08)";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([10,10]);
+      ctx.beginPath();
+      for (let i=0;i<pts.length;i++){
+        const p = pts[i];
+        if (i===0) ctx.moveTo(p.x, p.y);
+        else ctx.lineTo(p.x, p.y);
+      }
+      ctx.closePath();
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.restore();
+
+      // Start/finish marker near first point segment
+      const start = pts[0];
+      const next = pts[1];
+      const dir = norm(sub(next, start));
+      const n = { x: -dir.y, y: dir.x };
+
+      ctx.save();
+      ctx.strokeStyle = "rgba(255,255,255,0.90)";
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(start.x + n.x * -18, start.y + n.y * -18);
+      ctx.lineTo(start.x + n.x *  18, start.y + n.y *  18);
+      ctx.stroke();
+
+      ctx.fillStyle = "rgba(255,255,255,0.72)";
+      ctx.font = "900 14px ui-sans-serif, system-ui";
+      ctx.fillText("START / FINISH", start.x + 20, start.y - 16);
+      ctx.restore();
+    }
+
+    function drawCar(r){
+      const track = state.track;
+      const sample = track.sampleAtDistMeters(r.distance);
+      const heading = sample.heading;
+
+      // offset perpendicular for separation
+      const nx = Math.cos(heading + Math.PI/2);
+      const ny = Math.sin(heading + Math.PI/2);
+
+      const x = sample.x + nx * r.laneOffset;
+      const y = sample.y + ny * r.laneOffset;
+
+      const img = r.sprite || state.images.get(r.spritePath);
+
+      // sprite size
+      const w = 54;
+      const h = 30;
 
       ctx.save();
       ctx.translate(x, y);
-      ctx.rotate(p.heading);
+      ctx.rotate(heading);
 
       // shadow
       ctx.globalAlpha = 0.25;
       ctx.fillStyle = "#000";
       ctx.beginPath();
-      ctx.ellipse(0, 10, w*0.45, h*0.32, 0, 0, Math.PI*2);
+      ctx.ellipse(0, 10, w*0.46, h*0.34, 0, 0, Math.PI*2);
       ctx.fill();
       ctx.globalAlpha = 1;
 
       if (img){
         ctx.drawImage(img, -w/2, -h/2, w, h);
       } else {
-        // placeholder
         ctx.fillStyle = "rgba(255,255,255,0.85)";
         ctx.fillRect(-w/2, -h/2, w, h);
       }
 
-      // team marker
-      ctx.globalAlpha = 0.9;
-      ctx.fillStyle = r.team === 1 ? "rgba(96,165,250,0.95)" : "rgba(74,222,128,0.95)";
+      // team marker dot
+      ctx.globalAlpha = 0.95;
+      ctx.fillStyle = (r.team===1) ? "rgba(96,165,250,0.95)" : "rgba(74,222,128,0.95)";
       ctx.beginPath();
       ctx.arc(-w/2 + 8, -h/2 + 8, 4, 0, Math.PI*2);
       ctx.fill();
@@ -1661,158 +1902,289 @@
 
       ctx.restore();
 
-      // telemetry label
+      // label
       ctx.save();
       ctx.fillStyle = "rgba(255,255,255,0.78)";
-      ctx.font = "700 12px ui-sans-serif, system-ui";
+      ctx.font = "900 12px ui-sans-serif, system-ui";
       ctx.fillText(r.car.name, x + 18, y - 14);
-
-      // small tire wear bar
-      if (state.pit){
-        ctx.fillStyle = "rgba(255,255,255,0.20)";
-        ctx.fillRect(x + 18, y - 10, 50, 6);
-        ctx.fillStyle = r.wear < 0.5 ? "rgba(74,222,128,0.85)"
-                   : r.wear < 0.8 ? "rgba(251,191,36,0.85)"
-                   : "rgba(251,113,133,0.85)";
-        ctx.fillRect(x + 18, y - 10, 50 * (1 - r.wear), 6);
-      }
-
-      // pit indicator
-      if (r.inPit){
-        ctx.fillStyle = "rgba(251,191,36,0.90)";
-        ctx.fillText("PIT", x + 18, y + 18);
-      }
-
-      // chaos indicator
-      if (state.chaos && r.eventTimeLeft > 0){
-        ctx.fillStyle = "rgba(251,113,133,0.90)";
-        ctx.fillText("⚠", x + 18, y + 32);
-      }
-
       ctx.restore();
     }
 
-    function drawLeaderboard(t){
+    function drawCanvasLeaderboard(){
       const sorted = state.racers.slice().sort((a,b)=>b.distance-a.distance);
 
       const x = 18;
       const y = 18;
-      const w = 320;
+      const w = 330;
       const rowH = 22;
 
       ctx.save();
-      ctx.globalAlpha = 0.90;
+      ctx.globalAlpha = 0.92;
       ctx.fillStyle = "rgba(0,0,0,0.30)";
       ctx.strokeStyle = "rgba(255,255,255,0.12)";
       ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.roundRect(x, y, w, 20 + sorted.length * rowH + 12, 14);
+      ctx.roundRect(x, y, w, 20 + sorted.length*rowH + 12, 14);
       ctx.fill();
       ctx.stroke();
       ctx.restore();
 
       ctx.save();
-      ctx.fillStyle = "rgba(255,255,255,0.85)";
-      ctx.font = "900 13px ui-sans-serif, system-ui";
-      ctx.fillText("LIVE LEADERBOARD", x + 12, y + 18);
+      ctx.fillStyle = "rgba(255,255,255,0.86)";
+      ctx.font = "950 13px ui-sans-serif, system-ui";
+      ctx.fillText("LIVE", x+12, y+18);
 
-      ctx.font = "700 12px ui-sans-serif, system-ui";
-      ctx.fillStyle = "rgba(255,255,255,0.80)";
-
-      const lapMeters = t.trackMeters;
-
+      ctx.font = "850 12px ui-sans-serif, system-ui";
       for (let i=0;i<sorted.length;i++){
         const r = sorted[i];
-        const lap = Math.floor(r.distance / lapMeters);
-        const distKm = (r.distance / 1000).toFixed(2);
+        const yy = y + 38 + i*rowH;
 
-        const yy = y + 38 + i * rowH;
+        ctx.fillStyle = (r.team===1) ? "rgba(96,165,250,0.95)" : "rgba(74,222,128,0.95)";
+        ctx.fillRect(x+12, yy-10, 6, 6);
 
-        // marker
-        ctx.fillStyle = r.team===1 ? "rgba(96,165,250,0.95)" : "rgba(74,222,128,0.95)";
-        ctx.fillRect(x + 12, yy - 10, 6, 6);
+        ctx.fillStyle = "rgba(255,255,255,0.84)";
+        ctx.fillText(`${i+1}. ${r.car.name}`, x+24, yy-4);
 
-        ctx.fillStyle = "rgba(255,255,255,0.85)";
-        ctx.fillText(`${i+1}. ${r.car.name}`, x + 24, yy - 4);
-        ctx.fillStyle = "rgba(255,255,255,0.65)";
-        ctx.fillText(`Lap ${lap} • ${distKm}km`, x + 190, yy - 4);
+        const lap = r.lap;
+        ctx.fillStyle = "rgba(255,255,255,0.62)";
+        ctx.fillText(`L${lap}`, x+w-44, yy-4);
       }
-
       ctx.restore();
     }
 
-    // Add CanvasRenderingContext2D.roundRect if missing (older browsers)
-    if (!CanvasRenderingContext2D.prototype.roundRect){
-      CanvasRenderingContext2D.prototype.roundRect = function(x,y,w,h,r){
-        const rr = Math.min(r, w/2, h/2);
-        this.beginPath();
-        this.moveTo(x+rr, y);
-        this.arcTo(x+w, y, x+w, y+h, rr);
-        this.arcTo(x+w, y+h, x, y+h, rr);
-        this.arcTo(x, y+h, x, y, rr);
-        this.arcTo(x, y, x+w, y, rr);
-        this.closePath();
-        return this;
-      };
+    function drawScene(){
+      const track = state.track;
+      drawBackground(track);
+      drawTrack(track);
+
+      // draw cars in distance order so leader overlays nicely
+      const order = state.racers.slice().sort((a,b)=>a.distance-b.distance);
+      for (const r of order) drawCar(r);
+
+      drawCanvasLeaderboard();
     }
 
-    function drawScene(){
-      const t = state.track;
-      if (!t) return;
+    function drawStatic(){
+      state.track = buildTrack();
+      drawBackground(state.track);
+      drawTrack(state.track);
 
-      drawTrack(t);
+      ctx.save();
+      ctx.fillStyle = "rgba(255,255,255,0.60)";
+      ctx.font = "950 18px ui-sans-serif, system-ui";
+      ctx.fillText("Draft cars to race", 22, state.track.H - 22);
+      ctx.restore();
+    }
 
-      // racers
-      if (state.racers && state.racers.length){
-        // draw in distance order for nicer overlap
-        const drawOrder = state.racers.slice().sort((a,b)=>a.distance-b.distance);
-        for (const r of drawOrder){
-          drawRacer(r, t);
-        }
-        drawLeaderboard(t);
-      } else {
-        // draw a subtle hint if no racers
-        ctx.save();
-        ctx.fillStyle = "rgba(255,255,255,0.55)";
-        ctx.font = "900 18px ui-sans-serif, system-ui";
-        ctx.fillText("Draft cars to begin", 30, t.H - 30);
-        ctx.restore();
+    /* ============================================================
+      SECTION 13 • LIVE UI (Leaderboard + Lap Times)
+    ============================================================ */
+
+    function renderLiveLeaderboard(){
+      const sorted = state.racers.slice().sort((a,b)=>b.distance-a.distance);
+
+      let html = `<table>
+        <thead>
+          <tr>
+            <th class="pos">#</th>
+            <th>Car</th>
+            <th>Team</th>
+            <th>Lap</th>
+            <th>Speed</th>
+          </tr>
+        </thead>
+        <tbody>
+      `;
+
+      for (let i=0;i<sorted.length;i++){
+        const r = sorted[i];
+        const teamColor = (r.team===1) ? "var(--p1)" : "var(--p2)";
+        const mph = (r.v / 0.44704);
+
+        html += `
+          <tr>
+            <td class="pos">${i+1}</td>
+            <td><span class="teamDot" style="background:${teamColor}"></span><b>${r.car.name}</b> <span class="pill-inline">${r.car.cls}</span></td>
+            <td>Player ${r.team}</td>
+            <td>${r.lap}/${state.lapsTarget}</td>
+            <td>${mph.toFixed(0)} mph</td>
+          </tr>
+        `;
+      }
+
+      html += `</tbody></table>`;
+
+      if (html !== state.lastLeaderboardHtml){
+        el.liveBoard.innerHTML = html;
+        state.lastLeaderboardHtml = html;
       }
     }
 
-    /* ==========================================================
-      MAIN LOOP
-    =========================================================== */
+    function renderLapTimes(){
+      // Show each car best lap + last lap
+      const sorted = state.racers.slice().sort((a,b)=>b.distance-a.distance);
+
+      let html = `<table>
+        <thead>
+          <tr>
+            <th>Car</th>
+            <th>Best</th>
+            <th>Last</th>
+            <th>Laps</th>
+          </tr>
+        </thead>
+        <tbody>
+      `;
+
+      for (const r of sorted){
+        const best = r.lapTimes.length ? Math.min(...r.lapTimes) : null;
+        const last = r.lapTimes.length ? r.lapTimes[r.lapTimes.length-1] : null;
+
+        html += `
+          <tr>
+            <td><b>${r.car.name}</b></td>
+            <td>${best ? formatTime(best) : "—"}</td>
+            <td>${last ? formatTime(last) : "—"}</td>
+            <td>${r.lapTimes.length}</td>
+          </tr>
+        `;
+      }
+
+      html += `</tbody></table>`;
+
+      if (html !== state.lastLapTimesHtml){
+        el.lapTimes.innerHTML = html;
+        state.lastLapTimesHtml = html;
+      }
+    }
+
+    function renderFinalResults(){
+      const sorted = state.racers.slice().sort((a,b)=>b.distance-a.distance);
+
+      let html = `<table>
+        <thead>
+          <tr>
+            <th class="pos">#</th>
+            <th>Car</th>
+            <th>Team</th>
+            <th>Distance</th>
+            <th>Best Lap</th>
+            <th>Laps</th>
+          </tr>
+        </thead>
+        <tbody>
+      `;
+
+      for (let i=0;i<sorted.length;i++){
+        const r = sorted[i];
+        const best = r.lapTimes.length ? Math.min(...r.lapTimes) : null;
+
+        html += `
+          <tr>
+            <td class="pos">${i+1}</td>
+            <td><b>${r.car.name}</b> <span class="pill-inline">${r.car.cls}</span></td>
+            <td>Player ${r.team}</td>
+            <td>${(r.distance/1000).toFixed(2)} km</td>
+            <td>${best ? formatTime(best) : "—"}</td>
+            <td>${r.lap}</td>
+          </tr>
+        `;
+      }
+
+      html += `</tbody></table>`;
+      el.results.innerHTML = html;
+    }
+
+    /* ============================================================
+      SECTION 14 • RACE CONTROL
+    ============================================================ */
+
+    async function startRace(){
+      if (state.racing) return;
+      if (!draftComplete()) return;
+
+      updateOptionsFromUI();
+
+      state.track = buildTrack();
+      state.racers = buildRacers();
+
+      // Preload all racer images
+      await preloadImagesForCars(state.racers.map(r => ({img: r.car.img})));
+
+      // refresh sprites
+      for (const r of state.racers){
+        r.sprite = state.images.get(r.spritePath) || null;
+      }
+
+      state.lapsTarget = computeLapsTarget();
+
+      state.racing = true;
+      state.startMs = performance.now();
+      state.lastMs = state.startMs;
+      state.simMs = 0;
+
+      // UI
+      setPill(el.pillStatus, "Status", "Racing");
+      setPill(el.pillTime, "Time", `0:00 / ${formatTime(state.raceDurationMs)}`);
+      setPill(el.pillLap, "Lap", `Lead: 0/${state.lapsTarget}`);
+
+      el.overlay.classList.add("hidden");
+      el.btnStart.disabled = true;
+
+      el.liveBoard.innerHTML = `<div class="small">Race in progress...</div>`;
+      el.lapTimes.innerHTML = `<div class="small">Race in progress...</div>`;
+      el.results.innerHTML = `<div class="small">Race in progress...</div>`;
+
+      // Initialize lap start times at 0
+      for (const r of state.racers){
+        r.lastLapStartMs = 0;
+      }
+
+      requestAnimationFrame(frame);
+    }
+
+    function endRace(){
+      state.racing = false;
+
+      const win = leader();
+      setPill(el.pillStatus, "Status", "Finished");
+
+      el.overlay.classList.remove("hidden");
+      el.overlayTitle.textContent = `Winner: ${win.car.name}`;
+      el.overlaySubtitle.innerHTML = `Player <b>${win.team}</b> wins. Press <b>Reset</b> to draft again.`;
+
+      renderFinalResults();
+    }
 
     function frame(now){
       if (!state.racing) return;
 
-      const dtMs = clamp(now - state.lastFrameMs, 8, 40);
-      state.lastFrameMs = now;
+      const dt = clamp(now - state.lastMs, FRAME_DT_MIN, FRAME_DT_MAX);
+      state.lastMs = now;
 
-      // Advance sim time at 1x real time
-      state.simTimeMs += dtMs;
+      state.simMs += dt;
 
-      // Step sim
-      stepAll(dtMs);
+      // step simulation
+      stepAll(dt);
 
-      // Update UI pills
-      const elapsed = state.simTimeMs;
-      setPillHtml(el.pillTime, "Time", `${formatTime(elapsed)} / ${formatTime(state.raceDurationMs)}`);
+      // update pills
+      setPill(el.pillTime, "Time", `${formatTime(state.simMs)} / ${formatTime(state.raceDurationMs)}`);
 
-      // Show "best lap" or lap target
-      const lead = state.racers.slice().sort((a,b)=>b.distance-a.distance)[0];
-      setPillHtml(el.pillLap, "Lap", `Lead: ${lead.lap}/${state.lapsTarget}`);
+      const lead = leader();
+      setPill(el.pillLap, "Lap", `Lead: ${lead.lap}/${state.lapsTarget}`);
 
-      // Draw
+      // draw
       drawScene();
 
-      // End conditions:
-      // 1) Time reaches duration
-      // 2) Leader reaches lapsTarget (optional extra)
-      const leaderLap = lead.lap;
+      // live UI refresh (not every frame to reduce DOM churn)
+      // update ~6 times per second
+      if (Math.floor(state.simMs/160) !== Math.floor((state.simMs-dt)/160)){
+        renderLiveLeaderboard();
+        renderLapTimes();
+      }
 
-      if (elapsed >= state.raceDurationMs || leaderLap >= state.lapsTarget){
+      // end conditions:
+      // - time elapsed OR leader reaches lapsTarget
+      if (state.simMs >= state.raceDurationMs || lead.lap >= state.lapsTarget){
         endRace();
         return;
       }
@@ -1820,30 +2192,91 @@
       requestAnimationFrame(frame);
     }
 
-    /* ==========================================================
-      EVENT WIRES
-    =========================================================== */
+    /* ============================================================
+      SECTION 15 • RESET / INIT
+    ============================================================ */
 
-    el.btnReset.addEventListener("click", resetGame);
-    el.btnDemo.addEventListener("click", autoPickDemo);
+    function reset(){
+      state.pool = createPool();
+      state.currentPack = [];
+      state.pickNumber = 0;
+      state.turn = 1;
+      state.p1 = [];
+      state.p2 = [];
+
+      state.racing = false;
+      state.startMs = 0;
+      state.lastMs = 0;
+      state.simMs = 0;
+      state.lapsTarget = 0;
+
+      state.track = buildTrack();
+      state.racers = [];
+      state.lastLeaderboardHtml = "";
+      state.lastLapTimesHtml = "";
+
+      el.btnStart.disabled = true;
+
+      setPill(el.pillStatus, "Status", "Drafting");
+      setPill(el.pillTime, "Time", `0:00 / ${formatTime(state.raceDurationMs)}`);
+      setPill(el.pillLap, "Lap", "–");
+
+      el.liveBoard.innerHTML = `<div class="small">No race yet.</div>`;
+      el.lapTimes.innerHTML = `<div class="small">No race yet.</div>`;
+      el.results.innerHTML = `<div class="small">No race yet.</div>`;
+
+      el.overlay.classList.remove("hidden");
+      el.overlayTitle.textContent = "Ready";
+      el.overlaySubtitle.innerHTML = "Draft <b>4 cars</b> each to enable <b>Start Race</b>.";
+
+      // generate first pack
+      nextPack();
+      renderAll();
+
+      drawStatic();
+    }
+
+    /* ============================================================
+      SECTION 16 • EVENT WIRES
+    ============================================================ */
+    el.btnReset.addEventListener("click", reset);
+    el.btnAutoDraft.addEventListener("click", () => {
+      autoDraft();
+      renderAll();
+    });
     el.btnStart.addEventListener("click", startRace);
 
-    el.searchInput.addEventListener("input", renderCarGrid);
-    el.toggleSnake.addEventListener("change", () => { renderAll(); });
-    el.toggleChaos.addEventListener("change", () => { renderAll(); });
-    el.togglePit.addEventListener("change", () => { renderAll(); });
+    el.searchInput.addEventListener("input", () => {
+      renderPack();
+    });
 
-    /* ==========================================================
-      INIT
-    =========================================================== */
+    el.togglePackBalance.addEventListener("change", () => {
+      updateOptionsFromUI();
+      renderPack();
+    });
 
-    // Start in draft mode
+    el.toggleMicroChaos.addEventListener("change", () => {
+      updateOptionsFromUI();
+    });
+
+    /* ============================================================
+      SECTION 17 • STARTUP
+    ============================================================ */
     (async function init(){
-      state.track = buildTrack();
-      await preloadAllImages();
-      resetGame();
+      state.pool = createPool();
+      await preloadAll();
+      reset();
     })();
 
+    /* ============================================================
+      END OF FILE
+      ------------------------------------------------------------
+      Notes for you:
+        1) Put your images into /cars/
+        2) Update CAR_DB entries so img matches your filenames
+        3) Add more cars by appending objects to CAR_DB
+        4) The draft will automatically work with any number of cars
+    ============================================================ */
   </script>
 </body>
-  </html>
+</html>
