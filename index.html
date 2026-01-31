@@ -1571,50 +1571,50 @@ for (let i=0;i<segs.length;i++){
   const vmax = perf.vmax;
   const v60  = perf.v60;
 
-  // Strong low-speed punch from 0–60 time
+  // Accel power purely from 0–60
   const baseAccel = perf.a0 * 1.35;
 
-  // Realistic traction limit (~1.15g peak)
-  const tractionLimit = 11.3;
+  // Realistic traction cap
+  const tractionLimit = 11.5;
 
   let a;
 
-  // =================================================
-  // BELOW 60 MPH (launch + exits = VERY important)
-  // =================================================
+  // =====================================
+  // BELOW 60 MPH → dominated by 0–60
+  // =====================================
+
   if(v < v60){
 
-    // Slight taper as speed rises
     const t = v / v60;
 
-    a = baseAccel * (1 - 0.08*t);
+    a = baseAccel * (1 - 0.05*t);
 
     a = Math.min(a, tractionLimit);
   }
 
-  // =================================================
-  // ABOVE 60 MPH (drag-limited curve)
-  // =================================================
+  // =====================================
+  // ABOVE 60 MPH → still mostly 0–60 based
+  // (top speed DOES NOT weaken accel)
+  // =====================================
+
   else {
 
-    const x = clamp(v / vmax, 0, 1);
+    const x = v / vmax;
 
-    // Strong decay toward vmax
-    a = baseAccel * 0.75 * Math.pow(1 - x, 2.0);
+    // Soft drag curve (very gentle)
+    a = baseAccel * Math.pow(1 - x, 1.1);
 
-    // Mid-range bhp influence
-    const bhpBoost = perf.bhpBoost || 1;
+    // BHP midrange effect
+    const midPull = Math.exp(-Math.pow((x - 0.55)/0.25, 2));
 
-    const midPull = Math.exp(-Math.pow((x - 0.55)/0.22, 2));
+    a *= (1 + (perf.bhpBoost - 1) * midPull);
 
-    a *= (1 + (bhpBoost - 1) * midPull);
-
-    // Never totally zero (tiny push)
-    a = Math.max(a, 0.12);
+    // minimum push
+    a = Math.max(a, 0.18);
   }
 
   return a;
-    }
+}
     function cornerCap(perf, severity){
 
   const h = clamp(perf.handlingFactor, 0.25, 0.95);
