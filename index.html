@@ -1778,16 +1778,20 @@ for (let i=0;i<segs.length;i++){
 
   if(r.v > vcap){
 
-    const h = clamp(r.perf.handlingFactor, 0.25, 0.95);
+  const h = clamp(r.perf.handlingFactor, 0.25, 0.95);
 
-    const overspeed = r.v - vcap;
+  // How hard the car can scrub speed (better handling = smoother)
+  const brakeGrip = lerp(4.5, 9.5, 1 - h);
 
-    const brakePower = lerp(6, 11, 1 - h);
+  // Overspeed into corner
+  const excess = r.v - vcap;
 
-    r.v -= brakePower * overspeed * dt;
+  // Progressive braking (momentum matters!)
+  r.v -= brakeGrip * excess * dt;
 
-    if(r.v < vcap) r.v = vcap;
-  }
+  // Allow small overshoot (realistic carry speed)
+  r.v = Math.max(r.v, vcap * 0.92);
+    }
 
   // -------------------------------------------------
   // ACCELERATION (free on straights + exits)
