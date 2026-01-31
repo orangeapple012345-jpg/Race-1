@@ -1597,7 +1597,7 @@
   const trackFactor = lerp(1.0, 0.30, severity);
 
   // Handling curve (VERY impactful)
-  const handlingPower = Math.pow(h, 3.1);
+  const handlingPower = Math.pow(h, 1.9);
 
   let cap = vmax * trackFactor * handlingPower;
 
@@ -1746,7 +1746,7 @@
     // High handling brakes late & lightly
     // Low handling brakes early & heavily
 
-    const baseBrake = lerp(16, 6, h);      // handling influence
+    const baseBrake = lerp(12, 7, h);      // handling influence
     const cornerAmp = lerp(1.0, 1.7, sev); // corner severity influence
 
     const brake = baseBrake * cornerAmp;
@@ -1765,7 +1765,7 @@
     const accel = accelAtSpeed(r.perf, r.v);
 
     // slight boost exiting corners for good handling cars
-    const exitBoost = lerp(0.9, 1.15, h);
+    const exitBoost = lerp(0.95, 1.08, h);
 
     r.v += accel * exitBoost * dt;
 
