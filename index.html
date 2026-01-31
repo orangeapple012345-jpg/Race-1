@@ -1728,89 +1728,104 @@ for (let i=0;i<segs.length;i++){
   const dt = dtMs / 1000;
   const track = state.track;
 
-  // Look ahead (braking anticipation)
+  // -------------------------------------------------
+  // Look ahead to anticipate braking zones
+  // -------------------------------------------------
+
   const lookAhead = clamp(r.v * 1.15, 30, 95);
 
   const here  = track.sampleAtDistMeters(r.distance);
   const ahead = track.sampleAtDistMeters(r.distance + lookAhead);
 
-  const sev = clamp(
+  let sev = clamp(
     lerp(here.severity, ahead.severity, 0.75),
     0,
     1
   );
 
+  // -------------------------------------------------
+  // Detect straights (no corner influence)
+  // -------------------------------------------------
+
+  const isStraight = sev < 0.06;
+
+  // -------------------------------------------------
+  // Speed caps
+  // -------------------------------------------------
+
   const vmax = r.perf.vmax;
-  let vcap = cornerCap(r.perf, sev);
 
-  // =====================================================
-  // HANDLING-BASED MINIMUM CORNER SPEED (REALISTIC)
-  // =====================================================
+  let vcap = isStraight
+    ? vmax
+    : cornerCap(r.perf, sev);
 
-  const h = clamp(r.perf.handlingFactor, 0.25, 0.95);
+  // -------------------------------------------------
+  // Minimum corner speed from handling (NOT on straights)
+  // -------------------------------------------------
 
-  // Maps handling -> corner floor speed
-  // bad ≈ 12 mph | great ≈ 60 mph
+  if(!isStraight){
 
-  const minCornerMs = lerp(
-    5.5,     // ~12 mph bad handling
-    27.0,    // ~60 mph elite handling (919 Evo)
-    Math.pow((h - 0.25) / 0.7, 1.8)
-  );
+    const h = clamp(r.perf.handlingFactor, 0.25, 0.95);
 
-  vcap = Math.max(vcap, minCornerMs);
+    const minCornerMs = lerp(
+      5.5,     // ~12 mph poor handling
+      27.0,    // ~60 mph elite handling
+      Math.pow((h - 0.25) / 0.7, 1.8)
+    );
 
-// =====================================================
-// BRAKING (HANDLING DOMINANT)
-// =====================================================
+    vcap = Math.max(vcap, minCornerMs);
+  }
 
-if(r.v > vcap){
+  // -------------------------------------------------
+  // BRAKING (only if above cap)
+  // -------------------------------------------------
 
-  const h = clamp(r.perf.handlingFactor, 0.25, 0.95);
+  if(r.v > vcap){
 
-  const overspeed = r.v - vcap;
+    const h = clamp(r.perf.handlingFactor, 0.25, 0.95);
 
-  const brakePower = lerp(8, 14, 1 - h);
+    const overspeed = r.v - vcap;
 
-  r.v -= brakePower * overspeed * dt;
+    const brakePower = lerp(8, 14, 1 - h);
 
-  if(r.v < vcap) r.v = vcap;
+    r.v -= brakePower * overspeed * dt;
 
-}
+    if(r.v < vcap) r.v = vcap;
+  }
 
-// =====================================================
-// ACCELERATION (STRAIGHTS + EXITS)
-// =====================================================
+  // -------------------------------------------------
+  // ACCELERATION (free on straights + exits)
+  // -------------------------------------------------
 
-else {
+  else {
 
-  const accel = accelAtSpeed(r.perf, r.v);
+    const accel = accelAtSpeed(r.perf, r.v);
 
-  r.v += accel * dt;
+    r.v += accel * dt;
 
-  if(r.v > r.perf.vmax) r.v = r.perf.vmax;
-    }
-  // =====================================================
+    if(r.v > vmax) r.v = vmax;
+  }
+
+  // -------------------------------------------------
   // MICRO CHAOS (tiny realism noise)
-  // =====================================================
+  // -------------------------------------------------
 
   if(state.microChaos){
-    const jitter = (Math.random()-0.5) * sev * 0.008;
+    const jitter = (Math.random() - 0.5) * sev * 0.008;
     r.v *= (1 + jitter);
   }
 
-  // Clamp
-  r.v = clamp(r.v, 0, vmax);
+  // -------------------------------------------------
+  // Clamp and move
+  // -------------------------------------------------
 
-  // =====================================================
-  // MOVE
-  // =====================================================
+  r.v = clamp(r.v, 0, vmax);
 
   r.distance += r.v * dt;
 
-  // =====================================================
+  // -------------------------------------------------
   // LAP TRACKING
-  // =====================================================
+  // -------------------------------------------------
 
   const lapMeters = track.lapMeters;
   const newLap = Math.floor(r.distance / lapMeters);
@@ -1826,7 +1841,7 @@ else {
     r.lap = newLap;
     r.lastLapStartMs = state.simMs;
   }
-    }
+                         }
 
     function stepAll(dtMs){
       for (const r of state.racers){
