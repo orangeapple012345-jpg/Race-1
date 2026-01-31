@@ -1626,7 +1626,7 @@ for (let i=0;i<segs.length;i++){
   let gripSpeed = lerp(
     minCorner,
     maxCorner,
-    Math.pow((h - 0.25) / 0.7, 1.35)   // handling matters, but not insane
+    Math.pow((h - 0.25) / 0.7, 1.12)   // handling matters, but not insane
   );
 
   // --- Speed influence (realism) ---
@@ -1788,7 +1788,7 @@ for (let i=0;i<segs.length;i++){
 
     const overspeed = r.v - vcap;
 
-    const brakePower = lerp(8, 14, 1 - h);
+    const brakePower = lerp(6, 11, 1 - h);
 
     r.v -= brakePower * overspeed * dt;
 
