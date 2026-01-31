@@ -1557,7 +1557,11 @@ for (let i=0;i<segs.length;i++){
 
       // Handling maps to corner retention
       const h = clamp(car.handling, 40, 100);
-      const handlingFactor = lerp(0.25, 0.85, (h - 40)/60); // 40->0.25, 100->0.85
+      const handlingFactor = clamp(
+  (car.handling - 65) / 50,
+  0,
+  1
+); // 40->0.25, 100->0.85
 
       return {
         vmax,
