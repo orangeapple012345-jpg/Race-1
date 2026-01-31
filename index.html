@@ -1628,7 +1628,7 @@ for (let i=0;i<segs.length;i++){
   const gripSpeed = lerp(
     minCorner,
     maxCorner,
-    Math.pow((h - 0.25) / 0.7, 1.27)
+    Math.pow((h - 0.25) / 0.7, 1.14)
   );
 
   // Severity reduces grip speed
@@ -1770,7 +1770,7 @@ for (let i=0;i<segs.length;i++){
     const minCornerMs = lerp(
       5.5,     // ~12 mph poor handling
       27.0,    // ~60 mph elite handling
-      Math.pow((h - 0.25) / 0.7, 1.6)
+      Math.pow((h - 0.25) / 0.7, 1.4)
     );
 
     vcap = Math.max(vcap, minCornerMs);
