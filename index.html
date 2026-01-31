@@ -1447,12 +1447,17 @@
       }
 
       // For each segment, assign severity blending its endpoints
-      for (let i=0;i<segs.length;i++){
-        const sevA = vertexSeverity[i];
-        const sevB = vertexSeverity[(i+1) % vertexSeverity.length];
-        const sev = clamp((sevA + sevB)*0.5, 0, 1);
-        segs[i].severity = sev; // 0 straight .. 1 sharp
-      }
+for (let i=0;i<segs.length;i++){
+  const sevA = vertexSeverity[i];
+  const sevB = vertexSeverity[(i+1) % vertexSeverity.length];
+
+  let sev = clamp((sevA + sevB)*0.5, 0, 1);
+
+  // sharpen real corners, keep sweepers fast
+  sev = Math.pow(sev, 1.4);
+
+  segs[i].severity = sev;
+}
 
       // Define a fictional "real" lap length in meters.
       // We map pixels to meters by choosing a scale so lap times feel realistic.
@@ -1614,33 +1619,28 @@
 
   const h = clamp(perf.handlingFactor, 0.25, 0.95);
 
-  // Map handling -> max corner speed (m/s)
-  // bad ≈ 25 mph, elite ≈ 95 mph
+  // Absolute corner speeds (NOT tied to vmax)
 
-  const minCorner = 11;   // 25 mph
-  const maxCorner = 42;   // 95 mph
+  const minCorner = 12;   // ~27 mph bad cars
+  const maxCorner = 48;   // ~107 mph elite downforce cars
 
-  const handlingSpeed = lerp(
+  // Handling → raw grip speed
+  const gripSpeed = lerp(
     minCorner,
     maxCorner,
-    Math.pow((h - 0.25) / 0.7, 1.6)
+    Math.pow((h - 0.25) / 0.7, 1.7)
   );
 
-  // Severity reduces allowed speed
-  // mild bend = small reduction
-  // hairpin = big reduction
+  // Severity reduces grip speed
+  // gentle bends barely slow
+  // sharp corners slow a lot
 
-  const severityFactor = lerp(
-    1.0,    // straight
-    0.35,   // very sharp corner
-    severity
-  );
+  const severityCurve = Math.pow(severity, 1.3);
 
-  let cap = handlingSpeed * severityFactor;
+  const cap = gripSpeed * lerp(1.0, 0.35, severityCurve);
 
   return cap;
     }
-
     /* ============================================================
       SECTION 11 • RACE SIM
       ------------------------------------------------------------
@@ -1766,35 +1766,32 @@
 
   if(r.v > vcap){
 
-    // High handling brakes late & lightly
-    // Low handling brakes early & heavily
+  const h = clamp(r.perf.handlingFactor, 0.25, 0.95);
 
-    const baseBrake = lerp(12, 7, h);      // handling influence
-    const cornerAmp = lerp(1.0, 1.7, sev); // corner severity influence
+  // Strong braking only when way over limit
 
-    const brake = baseBrake * cornerAmp;
+  const overspeed = r.v - vcap;
 
-    r.v -= brake * dt;
+  const brakePower = lerp(8, 14, 1 - h); // bad handling brakes harder
 
-    if(r.v < vcap) r.v = vcap;
+  r.v -= brakePower * overspeed * dt;
 
-  } 
+  if(r.v < vcap) r.v = vcap;
+          }
   else {
 
     // =====================================================
     // ACCELERATION (EXIT POWER)
     // =====================================================
 
-    const accel = accelAtSpeed(r.perf, r.v);
+    else {
 
-    // slight boost exiting corners for good handling cars
-    const exitBoost =
+  const accel = accelAtSpeed(r.perf, r.v);
 
-    r.v += accel * dt;
+  r.v += accel * dt;
 
-    if(r.v > vcap) r.v = vcap;
-  }
-
+  if(r.v > r.perf.vmax) r.v = r.perf.vmax;
+    }
   // =====================================================
   // MICRO CHAOS (tiny realism noise)
   // =====================================================
