@@ -1630,10 +1630,10 @@ for (let i=0;i<segs.length;i++){
   const maxCorner = 42;   // elite grip
 
   let gripSpeed = lerp(
-    minCorner,
-    maxCorner,
-    Math.pow((h - 0.25) / 0.7, 1.15)   // slightly softer than 1.56
-  );
+  minCorner,
+  maxCorner,
+  Math.pow(h, 1.15)
+);
 
   const sevCurve = Math.pow(severity, 1.12);
 
