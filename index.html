@@ -1626,13 +1626,13 @@ for (let i=0;i<segs.length;i++){
   let gripSpeed = lerp(
     minCorner,
     maxCorner,
-    Math.pow((h - 0.25) / 0.7, 1.45)   // handling matters, but not insane
+    Math.pow((h - 0.25) / 0.7, 1.35)   // handling matters, but not insane
   );
 
   // --- Speed influence (realism) ---
   // Faster cars can carry more corner speed
 
-  const speedInfluence = clamp(perf.vmax / 100, 0.78, 1.12);
+  const speedInfluence = clamp(perf.vmax / 95, 0.78, 1.12);
 
   gripSpeed *= speedInfluence;
 
