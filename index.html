@@ -1572,7 +1572,7 @@ for (let i=0;i<segs.length;i++){
   const v60  = perf.v60;
 
   // Strong low-speed punch from 0–60 time
-  const baseAccel = perf.a0 * 1.15;
+  const baseAccel = perf.a0 * 1.35;
 
   // Realistic traction limit (~1.15g peak)
   const tractionLimit = 11.3;
@@ -1587,7 +1587,7 @@ for (let i=0;i<segs.length;i++){
     // Slight taper as speed rises
     const t = v / v60;
 
-    a = baseAccel * (1 - 0.15*t);
+    a = baseAccel * (1 - 0.08*t);
 
     a = Math.min(a, tractionLimit);
   }
@@ -1600,7 +1600,7 @@ for (let i=0;i<segs.length;i++){
     const x = clamp(v / vmax, 0, 1);
 
     // Strong decay toward vmax
-    a = baseAccel * 0.7 * Math.pow(1 - x, 2.0);
+    a = baseAccel * 0.75 * Math.pow(1 - x, 2.0);
 
     // Mid-range bhp influence
     const bhpBoost = perf.bhpBoost || 1;
