@@ -1601,7 +1601,7 @@ for (let i=0;i<segs.length;i++){
   const v60  = perf.v60;
 
   // Accel power purely from 0–60
-  const baseAccel = perf.a0 * 1.35;
+  const baseAccel = perf.a0 * 1.55;
 
   // Realistic traction cap
   const tractionLimit = 11.5;
@@ -1631,7 +1631,7 @@ for (let i=0;i<segs.length;i++){
     const x = v / vmax;
 
     // Soft drag curve (very gentle)
-    a = baseAccel * Math.pow(1 - x, 1.1);
+    a = baseAccel * Math.pow(1 - x, 0.85);
 
     // BHP midrange effect
     const midPull = Math.exp(-Math.pow((x - 0.55)/0.25, 2));
@@ -1657,7 +1657,7 @@ for (let i=0;i<segs.length;i++){
   Math.pow(h, 1.15)
 );
 
-  const sevCurve = Math.pow(severity, 1.12);
+  const sevCurve = Math.pow(severity, 1.05);
 
   const cap = gripSpeed * lerp(1.0, 0.42, sevCurve);
 
