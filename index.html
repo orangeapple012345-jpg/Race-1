@@ -1767,7 +1767,7 @@
     // slight boost exiting corners for good handling cars
     const exitBoost =
 
-    r.v += accel * exitBoost * dt;
+    r.v += accel * dt;
 
     if(r.v > vcap) r.v = vcap;
   }
