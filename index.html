@@ -1600,7 +1600,7 @@ for (let i=0;i<segs.length;i++){
     const x = clamp(v / vmax, 0, 1);
 
     // Strong decay toward vmax
-    a = baseAccel * 0.65 * Math.pow(1 - x, 2.0);
+    a = baseAccel * 0.7 * Math.pow(1 - x, 2.0);
 
     // Mid-range bhp influence
     const bhpBoost = perf.bhpBoost || 1;
@@ -1628,7 +1628,7 @@ for (let i=0;i<segs.length;i++){
   const gripSpeed = lerp(
     minCorner,
     maxCorner,
-    Math.pow((h - 0.25) / 0.7, 1.4)
+    Math.pow((h - 0.25) / 0.7, 1.27)
   );
 
   // Severity reduces grip speed
@@ -1738,7 +1738,7 @@ for (let i=0;i<segs.length;i++){
   const ahead = track.sampleAtDistMeters(r.distance + lookAhead);
 
   let sev = clamp(
-    lerp(here.severity, ahead.severity, 0.75),
+    lerp(here.severity, ahead.severity, 0.6),
     0,
     1
   );
