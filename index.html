@@ -1760,31 +1760,29 @@ for (let i=0;i<segs.length;i++){
 
   vcap = Math.max(vcap, minCornerMs);
 
-  // =====================================================
-  // BRAKING (HANDLING DOMINANT)
-  // =====================================================
+// =====================================================
+// BRAKING (HANDLING DOMINANT)
+// =====================================================
 
-  if(r.v > vcap){
+if(r.v > vcap){
 
   const h = clamp(r.perf.handlingFactor, 0.25, 0.95);
 
-  // Strong braking only when way over limit
-
   const overspeed = r.v - vcap;
 
-  const brakePower = lerp(8, 14, 1 - h); // bad handling brakes harder
+  const brakePower = lerp(8, 14, 1 - h);
 
   r.v -= brakePower * overspeed * dt;
 
   if(r.v < vcap) r.v = vcap;
-          }
-  else {
 
-    // =====================================================
-    // ACCELERATION (EXIT POWER)
-    // =====================================================
+}
 
-    else {
+// =====================================================
+// ACCELERATION (STRAIGHTS + EXITS)
+// =====================================================
+
+else {
 
   const accel = accelAtSpeed(r.perf, r.v);
 
