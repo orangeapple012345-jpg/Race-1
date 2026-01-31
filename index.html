@@ -1571,7 +1571,7 @@
     const x = clamp(v / vmax, 0, 1);
 
     // Strong decay toward vmax
-    a = baseAccel * 0.55 * Math.pow(1 - x, 2.4);
+    a = baseAccel * 0.65 * Math.pow(1 - x, 2.0);
 
     // Mid-range bhp influence
     const bhpBoost = perf.bhpBoost || 1;
