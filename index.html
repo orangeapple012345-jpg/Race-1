@@ -1622,30 +1622,21 @@ for (let i=0;i<segs.length;i++){
 
   const h = clamp(perf.handlingFactor, 0.25, 0.95);
 
-  // --- Raw grip limits (pure handling based) ---
-  const minCorner = 13;   // ~30 mph poor handling
-  const maxCorner = 42;   // ~96 mph elite track cars
+  const minCorner = 13;   // bad grip
+  const maxCorner = 42;   // elite grip
 
   let gripSpeed = lerp(
     minCorner,
     maxCorner,
-    Math.pow((h - 0.25) / 0.7, 1.56)   // handling matters, but not insane
+    Math.pow((h - 0.25) / 0.7, 1.45)   // slightly softer than 1.56
   );
 
-  // --- Speed influence (realism) ---
-  // Faster cars can carry more corner speed
-
-  const speedInfluence = clamp(perf.vmax / 95, 0.78, 1.12);
-
-  gripSpeed *= speedInfluence;
-
-  // --- Corner harshness ---
   const sevCurve = Math.pow(severity, 1.25);
 
   const cap = gripSpeed * lerp(1.0, 0.42, sevCurve);
 
   return cap;
-}
+      }
     /* ============================================================
       SECTION 11 • RACE SIM
       ------------------------------------------------------------
