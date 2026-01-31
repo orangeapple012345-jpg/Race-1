@@ -1362,26 +1362,50 @@
       // These waypoints create a complex loop.
       // You can add more points to make it even more technical.
       const pts = [
-        v2(160, 130),  // start/finish near here
-        v2(370, 120),
-        v2(560, 140),
-        v2(740, 120),  // straight
-        v2(860, 180),  // fast right kink
-        v2(900, 300),  // heavy braking
-        v2(820, 390),  // hairpin-ish
-        v2(700, 430),  // exit
-        v2(620, 390),  // chicane start
-        v2(560, 440),
-        v2(500, 380),
-        v2(420, 420),
-        v2(360, 460),  // technical
-        v2(300, 420),
-        v2(240, 460),
-        v2(200, 400),
-        v2(150, 340),
-        v2(130, 260),  // long left
-        v2(200, 200)   // back to start region
-      ];
+
+  // ===== LONG MAIN STRAIGHT =====
+  v2(120, 120),   // start/finish
+  v2(320, 120),
+  v2(560, 120),
+  v2(820, 120),
+  v2(940, 150),
+
+  // ===== HEAVY BRAKING HAIRPIN =====
+  v2(940, 300),
+  v2(820, 380),
+  v2(680, 380),
+
+  // ===== TECHNICAL S SECTION =====
+  v2(620, 320),
+  v2(560, 400),
+  v2(500, 300),
+  v2(440, 420),
+  v2(380, 320),
+
+  // ===== SHORT STRAIGHT =====
+  v2(300, 300),
+  v2(220, 300),
+
+  // ===== SWEEPING LEFT =====
+  v2(160, 360),
+  v2(140, 460),
+
+  // ===== TIGHT COMPLEX =====
+  v2(240, 520),
+  v2(360, 500),
+  v2(420, 440),
+
+  // ===== FINAL FAST BENDS =====
+  v2(500, 380),
+  v2(620, 340),
+  v2(760, 300),
+  v2(880, 240),
+
+  // back toward straight
+  v2(700, 180),
+  v2(420, 150),
+  v2(200, 140)
+];
 
       // Auto-close
       const loop = pts.slice();
