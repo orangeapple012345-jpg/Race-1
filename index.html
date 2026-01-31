@@ -1631,7 +1631,7 @@ for (let i=0;i<segs.length;i++){
     const x = v / vmax;
 
     // Soft drag curve (very gentle)
-    a = baseAccel * Math.pow(1 - x, 0.85);
+    a = baseAccel * Math.pow(1 - x, 0.7);
 
     // BHP midrange effect
     const midPull = Math.exp(-Math.pow((x - 0.55)/0.25, 2));
