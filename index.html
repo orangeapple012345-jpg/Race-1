@@ -1588,34 +1588,33 @@
     }
     function cornerCap(perf, severity){
 
-  const vmax = perf.vmax;
-
-  // Handling dominance (very strong)
   const h = clamp(perf.handlingFactor, 0.25, 0.95);
 
-  // Nürburgring curvature harshness
-  const trackFactor = lerp(1.0, 0.55, severity);
+  // Map handling -> max corner speed (m/s)
+  // bad ≈ 25 mph, elite ≈ 95 mph
 
-  // Handling curve (VERY impactful)
-  const handlingPower = Math.pow(h, 1.75);
+  const minCorner = 11;   // 25 mph
+  const maxCorner = 42;   // 95 mph
 
-  let cap = vmax * trackFactor * handlingPower;
-
-  // --- Realistic minimum speeds ---
-  // Maps roughly to real life
-
-  const minBad = 6;     // ~13 mph
-  const minGreat = 27;  // ~60 mph
-
-  const floor = lerp(
-    minBad,
-    minGreat,
-    Math.pow((h - 0.25) / 0.7, 1.8)
+  const handlingSpeed = lerp(
+    minCorner,
+    maxCorner,
+    Math.pow((h - 0.25) / 0.7, 1.6)
   );
 
-  cap = Math.max(cap, floor);
+  // Severity reduces allowed speed
+  // mild bend = small reduction
+  // hairpin = big reduction
 
-  return Math.min(cap, vmax);
+  const severityFactor = lerp(
+    1.0,    // straight
+    0.35,   // very sharp corner
+    severity
+  );
+
+  let cap = handlingSpeed * severityFactor;
+
+  return cap;
     }
 
     /* ============================================================
