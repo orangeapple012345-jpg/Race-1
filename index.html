@@ -1657,7 +1657,7 @@ for (let i=0;i<segs.length;i++){
   Math.pow(h, 1.15)
 );
 
-  const sevCurve = Math.pow(severity, 1.05);
+  const sevCurve = Math.pow(severity, 0.90);
 
   const cap = gripSpeed * lerp(1.0, 0.42, sevCurve);
 
