@@ -1765,7 +1765,7 @@
     const accel = accelAtSpeed(r.perf, r.v);
 
     // slight boost exiting corners for good handling cars
-    const exitBoost = lerp(0.95, 1.08, h);
+    const exitBoost = lerp(0.85, 1.05, h);
 
     r.v += accel * exitBoost * dt;
 
