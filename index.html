@@ -1631,8 +1631,10 @@ for (let i=0;i<segs.length;i++){
 
       // Handling maps to corner retention
       const h = clamp(car.handling, 40, 100);
-      const handlingFactor = clamp(
-  (car.handling - 65) / 50,
+      // Handling is still important, but compressed
+// 70–100 handling now maps to a tighter band
+const handlingFactor = clamp(
+  (car.handling - 70) / 40,
   0,
   1
 ); // 40->0.25, 100->0.85
@@ -1647,55 +1649,33 @@ for (let i=0;i<segs.length;i++){
       };
     }
 
-    function accelAtSpeed(perf, v){
+  function accelAtSpeed(perf, v){
 
   const vmax = perf.vmax;
   const v60  = perf.v60;
 
-  // Accel power purely from 0–60
-  const baseAccel = perf.a0 * 1.70;
-
-  // Realistic traction cap
-  const tractionLimit = 11.5;
+  const baseAccel = perf.a0 * 2.15;
+  const tractionLimit = 11.8;
 
   let a;
 
-  // =====================================
-  // BELOW 60 MPH → dominated by 0–60
-  // =====================================
-
-  if(v < v60){
-
+  if (v < v60) {
     const t = v / v60;
-
-    a = baseAccel * (1 - 0.05*t);
-
+    a = baseAccel * (1.15 - 0.30 * t);
     a = Math.min(a, tractionLimit);
-  }
-
-  // =====================================
-  // ABOVE 60 MPH → still mostly 0–60 based
-  // (top speed DOES NOT weaken accel)
-  // =====================================
-
+  } 
   else {
-
     const x = v / vmax;
+    a = baseAccel * Math.pow(1 - x, 0.95);
 
-    // Soft drag curve (very gentle)
-    a = baseAccel * Math.pow(1 - x, 0.7);
-
-    // BHP midrange effect
-    const midPull = Math.exp(-Math.pow((x - 0.55)/0.25, 2));
-
+    const midPull = Math.exp(-Math.pow((x - 0.50) / 0.22, 2));
     a *= (1 + (perf.bhpBoost - 1) * midPull);
 
-    // minimum push
-    a = Math.max(a, 0.18);
+    a = Math.max(a, 0.12);
   }
 
   return a;
-}
+  }
     function cornerCap(perf, severity){
 
   const h = clamp(perf.handlingFactor, 0.25, 0.95);
