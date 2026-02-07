@@ -1678,23 +1678,23 @@ const handlingFactor = clamp(
   }
     function cornerCap(perf, severity){
 
-  const h = clamp(perf.handlingFactor, 0.25, 0.95);
+  const h = clamp(perf.handlingFactor, 0.2, 0.9);
 
-  const minCorner = 13;   // bad grip
-  const maxCorner = 42;   // elite grip
+  // Lower absolute corner speeds → exits matter more
+  const minCorner = 11;   // ~25 mph
+  const maxCorner = 36;   // ~80 mph
 
   let gripSpeed = lerp(
-  minCorner,
-  maxCorner,
-  Math.pow(h, 1.15)
-);
+    minCorner,
+    maxCorner,
+    Math.pow(h, 1.05)
+  );
 
-  const sevCurve = Math.pow(severity, 0.81);
+  // Corners bite harder, straights stay fast
+  const sevCurve = Math.pow(severity, 0.95);
 
-  const cap = gripSpeed * lerp(1.0, 0.42, sevCurve);
-
-  return cap;
-      }
+  return gripSpeed * lerp(1.0, 0.50, sevCurve);
+}
     /* ============================================================
       SECTION 11 • RACE SIM
       ------------------------------------------------------------
